@@ -1,0 +1,8 @@
+*.sw[op]
+*.zip
+*.rar
+*.txt
+*.doc[x]
+*.pdf
+*.lock
+target
