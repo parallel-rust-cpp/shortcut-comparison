@@ -5,4 +5,10 @@
 *.doc[x]
 *.pdf
 *.lock
+
 target
+compile_commands.json
+CMake*
+!CMakeLists.txt
+cmake_install.cmake
+Makefile
