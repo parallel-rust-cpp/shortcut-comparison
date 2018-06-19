@@ -1,0 +1,4 @@
+[package]
+name = "shortcut"
+version = "0.1.0"
+authors = ["Matias Lindgren <matias.lindgren@gmail.com>"]
