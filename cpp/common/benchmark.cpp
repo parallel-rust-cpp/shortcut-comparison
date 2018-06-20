@@ -30,7 +30,7 @@ void benchmark(const unsigned n) noexcept {
 
 int main(int argc, const char** argv) {
     if (argc < 2 || argc > 3) {
-        std::cerr << "usage: benchmark N [ITERATIONS]" << std::endl;
+        std::cerr << "usage: " << argv[0] << " N [ITERATIONS]" << std::endl;
         return EXIT_FAILURE;
     }
     const unsigned n = std::atoi(argv[1]);
