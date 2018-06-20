@@ -12,7 +12,7 @@ mkdir build
 Generate makefiles and make project into the build directory:
 ```
 cd build
-cmake -G "Unix Makefiles" ../cpp
+cmake -G "Unix Makefiles" ..
 make
 ```
 
@@ -20,12 +20,12 @@ Binaries for benchmarking each version of the `step` function are in the `target
 
 ### Running
 
-Example: Run the `v1` version benchmark for 10 iterations, with input of size 100x100, consisting of random floating point numbers uniformly distributed in range `[0, 1]`:
+Example: Run the `v1` version benchmark for 10 iterations, with input of size 1000x1000, consisting of random floating point numbers uniformly distributed in range `[0, 1]`:
 ```
-./target/v1_linear_reading 100 10
+./target/v1_linear_reading 1000 10
 ```
 
 Run the same benchmark using only one thread:
 ```
-OMP_NUM_THREADS=1 ./target/v1_linear_reading 100 10
+OMP_NUM_THREADS=1 ./target/v1_linear_reading 1000 10
 ```
