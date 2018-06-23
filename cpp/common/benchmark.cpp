@@ -25,7 +25,7 @@ void benchmark(const unsigned n) noexcept {
     const auto time_end = std::chrono::high_resolution_clock::now();
 
     const std::chrono::duration<float> delta_seconds = time_end - time_start;
-    std::cout << delta_seconds.count() << std::endl;
+    std::cout << std::setprecision(7) << delta_seconds.count() << std::endl;
 }
 
 int main(int argc, const char** argv) {
