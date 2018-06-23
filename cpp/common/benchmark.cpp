@@ -20,11 +20,11 @@ void benchmark(const unsigned n) noexcept {
     data.reserve(n*n);
     std::generate(data.begin(), data.end(), next_float);
 
-    auto time_start = std::chrono::high_resolution_clock::now();
+    const auto time_start = std::chrono::high_resolution_clock::now();
     step(result.data(), data.data(), n);
-    auto time_end = std::chrono::high_resolution_clock::now();
+    const auto time_end = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<float> delta_seconds = time_end - time_start;
+    const std::chrono::duration<float> delta_seconds = time_end - time_start;
     std::cout << delta_seconds.count() << std::endl;
 }
 
