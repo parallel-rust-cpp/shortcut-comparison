@@ -14,12 +14,10 @@ fn next_float() -> f32 {
 }
 
 fn benchmark(n: usize) {
+    // Initialize all result elements to 0
     let mut result: vec::Vec<f32> = vec![0.0; n * n];
-    let mut data: vec::Vec<f32> = vec![0.0; n * n];
-    for i in 0..n * n {
-        data[i] = next_float();
-    }
-    let data = data;
+    // Initialize all data elements to 32-bit floats from uniform [0, 1)
+    let data: vec::Vec<f32> = (0..n * n).map(|_| next_float()).collect();
 
     let before = time::Instant::now();
     v0_baseline::step::step(&mut result, &data, n);
