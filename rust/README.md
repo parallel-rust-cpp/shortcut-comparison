@@ -5,10 +5,15 @@ All subdirectories prefixed with `v?_` contain incrementally improved versions o
 ## Building
 
 ```
-cd v0_baseline
 cargo build --release
-./target/release/shortcut
 ```
+
+## Running
+
+```
+./target/release/shortcut 1000 10
+```
+
 
 
 #### TODO
