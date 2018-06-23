@@ -9,3 +9,8 @@ cd v0_baseline
 cargo build --release
 ./target/release/shortcut
 ```
+
+
+#### TODO
+
+* compile C++ benchmarking functionality into a static library and link to rust apps
