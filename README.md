@@ -22,7 +22,7 @@ All executables for testing each version of the `step` function are in the `buil
 
 ## Running
 
-Example: Run a benchmark for the C++ step implementation with linear reading.
+Example: Run a benchmark for the C++ step version that implements linear reading.
 Benchmark for 10 iterations, with input of size 1000x1000, consisting of random floating point numbers uniformly distributed in range `[0, 1]`:
 ```
 ./build/bin/v1_linear_reading_cpp benchmark 1000 10
