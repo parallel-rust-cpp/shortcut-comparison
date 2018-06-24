@@ -4,7 +4,7 @@ project(ShortcutBenchmark)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -g -O3 -march=native -Wall -pedantic")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/target)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(BENCHMARK_SOURCES common/benchmark.cpp)
 
 # The Unix module in Rust depends on pthreads
@@ -20,7 +20,7 @@ foreach(step_impl ${step_implementations})
     # Compile C++ step implementation into static library
     add_library(${CPP_STEP_LIB} STATIC "cpp/${step_impl}/step.cpp")
     # Path to Rust step implementation as a static library; TODO call cargo build from here
-    set(RUST_STEP_LIB "${CMAKE_SOURCE_DIR}/rust/${step_impl}/target/release/lib${step_impl}.a")
+    set(RUST_STEP_LIB "${CMAKE_BINARY_DIR}/rust_cargo/release/lib${step_impl}.a")
 
     # Create C++ benchmark executable
     set(CPP_BENCHMARK_BIN "${step_impl}_cpp")
