@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -g -O3 -march=native -Wall -pedantic")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(BENCHMARK_SOURCES common/benchmark.cpp)
+set(BENCHMARK_SOURCES common/benchmark.cpp common/step_reference.cpp)
 
 # The Unix module in Rust depends on pthreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
