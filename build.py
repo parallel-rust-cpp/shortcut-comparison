@@ -30,9 +30,9 @@ def print_header(s):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--project_root", "-d",
+    parser.add_argument("--source_root", "-d",
             type=str,
-            help="Project root directory",
+            help="Source root directory",
             default="src")
     parser.add_argument("--build_dir", "-o",
             type=str,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             default=False)
 
     args = parser.parse_args()
-    root_dir =  os.path.abspath(args.project_root)
+    root_dir =  os.path.abspath(args.source_root)
     build_dir = os.path.abspath(args.build_dir)
     cargo_target_dir = os.path.join(build_dir, "rust_cargo")
 
