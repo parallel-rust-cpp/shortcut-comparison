@@ -25,8 +25,8 @@ class color:
     bold = '\033[1m'
     endc = '\033[0m'
 
-def print_header(s):
-    print(color.bold, s, color.endc)
+def print_header(s, **kwargs):
+    print(color.bold + s + color.endc, **kwargs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
