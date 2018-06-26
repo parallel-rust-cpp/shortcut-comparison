@@ -15,3 +15,6 @@ cmake_install.cmake
 Makefile
 
 perf*
+
+*.py[co]
+__pycache__
