@@ -58,13 +58,19 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="Value for environment variables controlling number of threads")
+    parser.add_argument("--implementation", "-i",
+        type=str,
+        help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")
 
     args = parser.parse_args()
     build_dir = os.path.abspath(args.build_dir)
+    impl_filter = args.implementation
 
     print_header("Running perf-stat for all implementations", end="\n\n")
     for lang in ("cpp", "rust"):
         for step_impl in STEP_IMPLEMENTATIONS:
+            if impl_filter and not step_impl.startswith(impl_filter):
+                continue
             print_header(lang + ' ' + step_impl)
             bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
             print((5*"{:15s}").format("N", "time", "insn", "cycles", "insn/cyc"))
