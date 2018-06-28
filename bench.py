@@ -67,10 +67,10 @@ if __name__ == "__main__":
     impl_filter = args.implementation
 
     print_header("Running perf-stat for all implementations", end="\n\n")
-    for lang in ("cpp", "rust"):
-        for step_impl in STEP_IMPLEMENTATIONS:
-            if impl_filter and not step_impl.startswith(impl_filter):
-                continue
+    for step_impl in STEP_IMPLEMENTATIONS:
+        if impl_filter and not step_impl.startswith(impl_filter):
+            continue
+        for lang in ("cpp", "rust"):
             print_header(lang + ' ' + step_impl)
             bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
             print((5*"{:15s}").format("N", "time", "insn", "cycles", "insn/cyc"))
