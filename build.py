@@ -12,6 +12,7 @@ COMMANDS = {
 STEP_IMPLEMENTATIONS = [
     "v0_baseline",
     "v1_linear_reading",
+    "v2_instr_level_parallelism"
 ]
 
 

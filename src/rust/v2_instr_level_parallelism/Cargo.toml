@@ -1,0 +1,11 @@
+[package]
+name = "v2_instr_level_parallelism"
+version = "0.1.0"
+
+[dependencies]
+rayon = "1.0.1"
+
+[lib]
+name = "v2_instr_level_parallelism"
+crate-type = ["staticlib"]
+path = "src/lib.rs"
