@@ -27,15 +27,20 @@ def parse_perf_csv(s):
     }
 
 
-def run_perf(cmd):
+def run_perf(cmd, num_threads):
     """
     Run given command string with perf-stat and return results in dict.
     """
     perf_cmd = "perf stat --detailed --detailed --field-separator ,".split(' ')
+    env = {
+        "OMP_NUM_THREADS": str(num_threads),
+        "RAYON_NUM_THREADS": str(num_threads)
+    }
     result = subprocess.run(
         perf_cmd + cmd.split(' '),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        env=env
     )
     return parse_perf_csv(result.stdout.decode("utf-8"))
 
@@ -49,6 +54,10 @@ if __name__ == "__main__":
         type=int,
         default=len(INPUT_SIZES),
         help="n in sizes[:n], where sizes is {}".format(INPUT_SIZES))
+    parser.add_argument("--threads", "-t",
+        type=int,
+        default=1,
+        help="Value for environment variables controlling number of threads")
 
     args = parser.parse_args()
     build_dir = os.path.abspath(args.build_dir)
@@ -63,7 +72,7 @@ if __name__ == "__main__":
                 for input_size in INPUT_SIZES[:args.limit_input_size]:
                     bench_args = 'benchmark {} {}'.format(input_size, iterations)
                     cmd = bench_cmd + ' ' + bench_args
-                    result = run_perf(cmd)
+                    result = run_perf(cmd, args.threads)
                     insn_per_cycle = result["instructions"]/result["cycles"]
                     print("{:4d}{:8.3f}{:15d}{:15d}{:8.3f}".format(
                         input_size,
