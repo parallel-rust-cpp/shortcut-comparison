@@ -34,6 +34,9 @@ if __name__ == "__main__":
     parser.add_argument("--implementation", "-i",
         type=str,
         help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")
+    parser.add_argument("--verbose", "-v",
+            action='store_true',
+            default=False)
 
     args = parser.parse_args()
     build_dir = os.path.abspath(args.build_dir)
@@ -47,9 +50,13 @@ if __name__ == "__main__":
             print_header(lang + ' ' + step_impl)
             test_cmd = os.path.join(build_dir, step_impl + "_" + lang)
             iterations = 10
+            failed = False
             for input_size in INPUT_SIZES:
                 test_args = 'test {} {}'.format(input_size, iterations)
                 cmd = test_cmd + ' ' + test_args
-                print(run(cmd, args.threads))
-            print()
+                output = run(cmd, args.threads)
+                failed = "ERROR" in output
+                if args.verbose:
+                    print(output)
+            print("! fail" if failed else "ok")
 
