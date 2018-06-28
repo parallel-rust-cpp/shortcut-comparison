@@ -1,7 +1,7 @@
 use std::vec;
 
 extern crate rayon;
-use rayon::prelude::*; // par_iter
+use rayon::prelude::*; // par_chunks_mut
 
 #[no_mangle]
 pub extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
