@@ -7,5 +7,5 @@ rayon = "1.0.1"
 
 [lib]
 name = "v1_linear_reading"
-crate-type = ["staticlib"]
+crate-type = ["cdylib"]
 path = "src/lib.rs"
