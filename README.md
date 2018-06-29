@@ -17,7 +17,9 @@ These scripts assume the following executables are available on your path:
 
 You can install and configure both the Rust compiler `rustc` and its package management tool `cargo` by using [rustup](https://github.com/rust-lang-nursery/rustup.rs).
 
-We will be using the experimental release channel for compiling Rust:
+If you use the rustup script, change the default toolchain to `nightly` and continue installation.
+
+If you installed the `rustup` binary:
 ```
 rustup install nightly
 rustup default nightly
