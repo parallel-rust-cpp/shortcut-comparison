@@ -4,11 +4,25 @@ The reference solution will be compared to a [Rust](https://github.com/rust-lang
 
 ## Requirements
 
+This project provides 3 scripts for building, benchmarking and testing the project.
+These scripts assume the following executables are available on your path:
+
 * python3
+* gcc
+* make
+* cmake
+* perf
 * cargo
 * rustc
-* cmake
-* gcc
+
+You can install and configure both the Rust compiler `rustc` and its package management tool `cargo` by using [rustup](https://github.com/rust-lang-nursery/rustup.rs).
+
+We will be using the experimental release channel for compiling Rust:
+```
+rustup install nightly
+rustup default nightly
+rustup update
+```
 
 ## Building
 
@@ -20,6 +34,13 @@ Assuming all dependencies have been installed, this will create an out of source
 
 All executables for testing each version of the `step` function are in the `build/bin` directory.
 
+## Testing
+
+Make sure all implementations of the step function yield results equal to the output of the C++ v0 baseline implementation:
+```
+./test.py build/bin
+```
+
 ## Running
 
 ### Everything at once
@@ -29,9 +50,9 @@ Run all benchmarks with `perf stat`, using one thread and 5 smallest sizes for i
 ./bench.py build/bin -n 5
 ```
 
-All benchmark sizes and 4 threads:
+All benchmark sizes, 4 threads and only the linear reading implementations:
 ```
-./bench.py build/bin -t 4
+./bench.py build/bin -t 4 -i v1
 ```
 
 ### Single benchmark
@@ -52,8 +73,8 @@ Example: Test that the baseline Rust implementation is correct:
 ./build/bin/v0_baseline_rust test 500 10
 ```
 
-Example: Run the Rust step version that implements linear reading,
-Benchmark for 1 iteration, with random input of size 4000x4000, and using 2 threads:
+Example: Run the Rust step version that implements instruction level parallelism.
+Benchmark for 2 iterations, with random input of size 4000x4000, and using 8 threads:
 ```
-RAYON_NUM_THREADS=2 ./build/bin/v1_linear_reading_rust benchmark 4000
+RAYON_NUM_THREADS=8 ./build/bin/v2_instr_level_parallelism_rust benchmark 4000 2
 ```
