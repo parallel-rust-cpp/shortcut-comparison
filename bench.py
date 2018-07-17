@@ -50,10 +50,14 @@ if __name__ == "__main__":
     parser.add_argument("build_dir",
         type=str,
         help="Path to the benchmark binaries")
-    parser.add_argument("--limit_input_size", "-n",
+    parser.add_argument("--limit_input_size_begin", "-n",
         type=int,
         default=len(INPUT_SIZES),
         help="n in sizes[:n], where sizes is {}".format(INPUT_SIZES))
+    parser.add_argument("--limit_input_size_end", "-m",
+        type=int,
+        default=0,
+        help="n in sizes[n:], where sizes is {}".format(INPUT_SIZES))
     parser.add_argument("--threads", "-t",
         type=int,
         default=1,
@@ -65,6 +69,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     build_dir = os.path.abspath(args.build_dir)
     impl_filter = args.implementation
+    input_sizes = INPUT_SIZES[args.limit_input_size_begin:args.limit_input_size_end]
 
     print_header("Running perf-stat for all implementations", end="\n\n")
     for step_impl in STEP_IMPLEMENTATIONS:
@@ -73,14 +78,14 @@ if __name__ == "__main__":
         for lang in ("cpp", "rust"):
             print_header(lang + ' ' + step_impl)
             bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
-            print((5*"{:15s}").format("N", "time", "insn", "cycles", "insn/cyc"))
+            print("{:8s}{:10s}{:15s}{:15s}{:8s}".format("N", "time", "instructions", "cycles", "insn/cyc"))
             for iterations in ITERATIONS:
-                for input_size in INPUT_SIZES[:args.limit_input_size]:
+                for input_size in input_sizes:
                     bench_args = 'benchmark {} {}'.format(input_size, iterations)
                     cmd = bench_cmd + ' ' + bench_args
                     result = run_perf(cmd, args.threads)
                     insn_per_cycle = result["instructions"]/result["cycles"]
-                    print("{:4d}{:8.3f}{:15d}{:15d}{:8.3f}".format(
+                    print("{:4d}{:8.3f}{:15d}{:15d}{:12.3f}".format(
                         input_size,
                         result["time"],
                         result["instructions"],
