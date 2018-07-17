@@ -6,11 +6,9 @@ pub extern "C" fn step(r: *mut f32, d: *const f32, n: usize) {
             let mut v = std::f32::INFINITY;
             for k in 0..n {
                 // Raw pointers may be dereferenced only in 'unsafe' sections
-                let z = unsafe {
-                    let x = *d.offset((n*i + k) as isize);
-                    let y = *d.offset((n*k + j) as isize);
-                    x + y
-                };
+                let x = unsafe { *d.offset((n*i + k) as isize) };
+                let y = unsafe { *d.offset((n*k + j) as isize) };
+                let z = x + y;
                 v = v.min(z);
             }
             unsafe {
