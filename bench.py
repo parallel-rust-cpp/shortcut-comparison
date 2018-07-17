@@ -65,6 +65,10 @@ if __name__ == "__main__":
     parser.add_argument("--implementation", "-i",
         type=str,
         help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")
+    parser.add_argument("--iterations", "-c",
+        type=int,
+        default=1,
+        help="Amount of iterations for each input size")
 
     args = parser.parse_args()
     build_dir = os.path.abspath(args.build_dir)
@@ -79,9 +83,9 @@ if __name__ == "__main__":
             print_header(lang + ' ' + step_impl)
             bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
             print("{:8s}{:10s}{:15s}{:15s}{:8s}".format("N", "time", "instructions", "cycles", "insn/cyc"))
-            for iterations in ITERATIONS:
-                for input_size in input_sizes:
-                    bench_args = 'benchmark {} {}'.format(input_size, iterations)
+            for input_size in input_sizes:
+                for iter_n in range(args.iterations):
+                    bench_args = 'benchmark {} 1'.format(input_size)
                     cmd = bench_cmd + ' ' + bench_args
                     result = run_perf(cmd, args.threads)
                     insn_per_cycle = result["instructions"]/result["cycles"]
