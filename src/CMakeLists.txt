@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(ShortcutBenchmark)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -g -O3 -march=native -Wall -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -g -O3 -Wall -pedantic")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(BENCHMARK_SOURCES common/main.cpp common/step_reference.cpp)
