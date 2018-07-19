@@ -4,4 +4,4 @@ version = "0.1.0"
 
 [lib]
 name = "v0_baseline"
-crate-type = ["cdylib"]
+crate-type = ["staticlib"]

@@ -21,7 +21,7 @@ foreach(step_impl ${step_implementations})
     # Compile C++ step implementation into static library
     add_library(${CPP_STEP_LIB} STATIC "cpp/${step_impl}/step.cpp")
     # Path to Rust step implementation as a static library; TODO call cargo build from here
-    set(RUST_STEP_LIB "${CMAKE_BINARY_DIR}/rust_cargo/release/lib${step_impl}.so")
+    set(RUST_STEP_LIB "${CMAKE_BINARY_DIR}/rust_cargo/release/lib${step_impl}.a")
 
     # Create C++ benchmark executable
     set(CPP_BENCHMARK_BIN "${step_impl}_cpp")
