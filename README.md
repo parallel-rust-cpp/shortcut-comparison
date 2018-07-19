@@ -80,3 +80,7 @@ Benchmark for 2 iterations, with random input of size 4000x4000, and using 8 thr
 ```
 RAYON_NUM_THREADS=8 ./build/bin/v2_instr_level_parallelism_rust benchmark 4000 2
 ```
+
+### Findings
+
+* Linking Rust static libraries into benchmarking tools compiled from C++ incurs significant overhead in the form of excessive amounts of CPU cycles. Maybe the benchmarking code needs to also be written in Rust to make sure there is no weirdness from FFI.
