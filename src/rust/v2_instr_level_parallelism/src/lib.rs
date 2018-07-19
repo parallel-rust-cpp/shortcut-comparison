@@ -1,36 +1,26 @@
 use std::vec;
 
-extern crate rayon;
-use rayon::prelude::*; // par_chunks_mut
+fn _step(r: &mut [f32], d: &[f32], n: usize) {
+    const BLOCK_SIZE: usize = 4;
+    let block_count = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    let n_padded = block_count * BLOCK_SIZE;
 
-#[no_mangle]
-pub extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
-    #[allow(non_upper_case_globals)]
-    const block_size: usize = 4;
-    let block_count = (n + block_size - 1) / block_size;
-    let n_padded = block_count * block_size;
-
-    let mut d = vec![std::f32::INFINITY; n * n_padded];
-    let mut t = vec![std::f32::INFINITY; n * n_padded];
-
+    // Transpose of d
+    let mut t: vec::Vec<f32> = vec![0.0; n * n];
     for i in 0..n {
         for j in 0..n {
-            d[n_padded*i + j] = unsafe { *d_raw.offset((n*i + j) as isize) };
-            t[n_padded*i + j] = unsafe { *d_raw.offset((n*j + i) as isize) };
+            t[n*j + i] = d[n*i + j];
         }
     }
 
-    // Parallelize by creating an empty, mutable result vector, which is partitioned into rows and iterated in parallel.
-
-    let mut r: vec::Vec<f32> = vec![0.0; n * n];
-
-    r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
+    // Partition the result slice into n rows, and compute result for each row in parallel
+    r.chunks_mut(n).enumerate().for_each(|(i, row)| {
         for j in 0..n {
-            let mut block = vec![std::f32::INFINITY; block_size];
+            let mut block = vec![std::f32::INFINITY; BLOCK_SIZE];
             for b in 0..block_count {
-                for k in 0..block_size {
-                    let x = d[n_padded*i + b*block_size + k];
-                    let y = t[n_padded*j + b*block_size + k];
+                for k in 0..BLOCK_SIZE {
+                    let x = d[n_padded*i + b*BLOCK_SIZE + k];
+                    let y = t[n_padded*j + b*BLOCK_SIZE + k];
                     let z = x + y;
                     block[k] = block[k].min(z);
                 }
@@ -42,8 +32,11 @@ pub extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
             row[j] = res;
         }
     });
+}
 
-    for (i, x) in r.iter().enumerate() {
-        unsafe { *r_raw.offset(i as isize) = *x; }
-    }
+#[no_mangle]
+pub extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
+    let d = unsafe { std::slice::from_raw_parts(d_raw, n * n) };
+    let mut r = unsafe { std::slice::from_raw_parts_mut(r_raw, n * n) };
+    _step(&mut r, d, n);
 }
