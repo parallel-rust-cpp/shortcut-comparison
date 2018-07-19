@@ -14,7 +14,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     }
 
     // Partition the result slice into n rows, and compute result for each row in parallel
-    r.chunks_mut(n).enumerate().for_each(|(i, row)| {
+    r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
         for j in 0..n {
             let mut v = std::f32::INFINITY;
             for k in 0..n {

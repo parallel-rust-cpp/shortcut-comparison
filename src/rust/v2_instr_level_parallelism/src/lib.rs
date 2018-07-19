@@ -1,5 +1,8 @@
 use std::vec;
 
+extern crate rayon;
+use rayon::prelude::*; // par_chunks_mut
+
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
     const BLOCK_SIZE: usize = 4;
     let block_count = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
@@ -14,7 +17,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     }
 
     // Partition the result slice into n rows, and compute result for each row in parallel
-    r.chunks_mut(n).enumerate().for_each(|(i, row)| {
+    r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
         for j in 0..n {
             let mut block = vec![std::f32::INFINITY; BLOCK_SIZE];
             for b in 0..block_count {
