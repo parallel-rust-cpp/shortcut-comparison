@@ -49,3 +49,20 @@ impl CycleCounter {
         });
     }
 }
+
+/*
+ * cargo:
+ * [dependencies]
+ * tools = { path = "../tools"}
+ *
+ * main.rs:
+ * extern crate tools;
+ *
+ * in function:
+ * let mut s = tools::CycleCounter::new();
+ * s.click();
+ * ... do many cycles ...
+ * s.click();
+ * s.report();
+ *
+ */
