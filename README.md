@@ -30,7 +30,7 @@ rustup update
 
 Run the provided build script (use `--verbose` because errors are not yet caught properly):
 ```
-./build.py --verbose
+env RUSTFLAGS="-C target-cpu=native" ./build.py --verbose
 ```
 Assuming all dependencies have been installed, this will create an out of source build into the directory `./build`.
 

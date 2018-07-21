@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(ShortcutBenchmark)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -g -O3 -Wall -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -march=native -g -O3 -Wall -pedantic")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(BENCHMARK_SOURCES common/main.cpp common/step_reference.cpp)
@@ -14,7 +14,8 @@ find_package(Threads REQUIRED)
 list(APPEND step_implementations
     v0_baseline
     v1_linear_reading
-    v2_instr_level_parallelism)
+    v2_instr_level_parallelism
+    v3_simd)
 
 foreach(step_impl ${step_implementations})
     set(CPP_STEP_LIB "${step_impl}_cpp_lib")
