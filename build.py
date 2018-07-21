@@ -14,6 +14,7 @@ STEP_IMPLEMENTATIONS = [
     "v1_linear_reading",
     "v2_instr_level_parallelism",
     "v3_simd",
+    "v4_register_reuse",
 ]
 
 
