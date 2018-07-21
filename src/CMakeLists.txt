@@ -29,6 +29,7 @@ foreach(step_impl ${step_implementations})
     add_executable(${CPP_BENCHMARK_BIN} ${BENCHMARK_SOURCES})
     target_include_directories(${CPP_BENCHMARK_BIN} PRIVATE common)
     target_include_directories(${CPP_STEP_LIB} PRIVATE common)
+    target_include_directories(${CPP_STEP_LIB} PRIVATE cpp/tools)
     target_link_libraries(${CPP_BENCHMARK_BIN} ${CPP_STEP_LIB})
 
     # Create Rust benchmark executable
