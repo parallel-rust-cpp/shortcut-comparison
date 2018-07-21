@@ -17,15 +17,17 @@ pub fn from_slice(row: &[f32]) -> __m256 {
 
 /// Permute 1, 2, or 4 element ranges with their neighbors.
 /// E.g.
-/// swap([0, 1, 2, 3, 4, 5, 6, 7 ], 1) == [1, 0, 3, 2, 5, 4, 7, 6]
-/// swap([0, 1, 2, 3, 4, 5, 6, 7 ], 2) == [2, 3, 0, 1, 6, 7, 4, 5]
-/// swap([0, 1, 2, 3, 4, 5, 6, 7 ], 4) == [4, 5, 6, 7, 0, 1, 2, 3]
+/// swap([0, 1, 2, 3, 4, 5, 6, 7], 1) == [1, 0, 3, 2, 5, 4, 7, 6]
+/// swap([0, 1, 2, 3, 4, 5, 6, 7], 2) == [2, 3, 0, 1, 6, 7, 4, 5]
+/// swap([0, 1, 2, 3, 4, 5, 6, 7], 4) == [4, 5, 6, 7, 0, 1, 2, 3]
 ///
 /// To make sense of the 8-bit shuffle control, read it in binary from right to left
-/// e.g. for control 1, each 2 bits correspond to (1, 0, 3, 2) (and (5, 4, 7, 6) for the 2nd 128-bit lane)
+/// e.g. for i = 1, control is 10110001.
+/// Reading from right to left in 2 bit chunks we get (1, 0, 3, 2),
+/// and (5, 4, 7, 6) for the 2nd 128-bit lane.
 ///
-pub fn swap(v: __m256, control: i8) -> __m256 {
-    match control {
+pub fn swap(v: __m256, width: i8) -> __m256 {
+    match width {
         1 => unsafe { _mm256_shuffle_ps(v, v, 0b_10_11_00_01) },
         2 => unsafe { _mm256_shuffle_ps(v, v, 0b_01_00_11_10) },
         4 => unsafe { _mm256_permute2f128_ps(v, v, 1) },
