@@ -39,6 +39,7 @@ pub fn swap(v: __m256, width: i8) -> __m256 {
 }
 
 /// Use an index to extract a single f32 from a 256-bit vector of single precision floats
+#[inline]
 pub fn extract(v: __m256, i: u8) -> f32 {
     // Create a permutation of v such that the 32 lowest bits correspond to the ith 32-bit chunk of v
     let permuted = match i {
