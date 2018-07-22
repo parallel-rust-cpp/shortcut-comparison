@@ -11,15 +11,16 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     const m256_length: usize = simd::M256_LENGTH;
     let vecs_per_row = (n + m256_length - 1) / m256_length;
 
-    // Cache blocking with 3x3 blocks containing 9 m256 vectors
+    // Specify sizes of 3x3 blocks used to load 6 vectors into registers and computing 9 results
     #[allow(non_upper_case_globals)]
     const blocksize: usize = 3;
     let blocks_per_col = (n + blocksize - 1) / blocksize;
     let padded_height = blocksize * blocks_per_col;
 
-    // Pack d and its transpose into m256 vectors, each containing 8 f32::INFINITYs
+    // Pack d and its transpose into m256 vectors
     let mut vt = std::vec::Vec::with_capacity(padded_height * vecs_per_row);
     let mut vd = std::vec::Vec::with_capacity(padded_height * vecs_per_row);
+
     for row in 0..n {
         for col in 0..vecs_per_row {
             // Build 8 element arrays for vd and vt, with infinity padding
@@ -46,7 +47,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
-    // Partition the result slice into blocks of rows, each containing blocksize of rows
+    // Partition the result slice into row blocks, each containing blocksize of rows
     // Then, compute the result of each row block in parallel
     r.par_chunks_mut(blocksize * n).enumerate().for_each(|(i, row_block)| {
         for j in 0..blocks_per_col {
