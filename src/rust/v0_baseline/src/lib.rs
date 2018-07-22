@@ -1,3 +1,4 @@
+#[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
     for i in 0..n {
         for j in 0..n {
@@ -13,13 +14,14 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     }
 }
 
-// Do not mangle function name to enable library linking
+/// C interface that accepts raw C pointers as arguments
+// Do not mangle function name to make library linking easier
 #[no_mangle]
-// C interface that accepts raw C pointers as arguments
-pub extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
-    // Wrap raw pointers given as parameter into Rust slices
-    // Raw pointers can be dereferenced only inside 'unsafe' sections
-    let d = unsafe { std::slice::from_raw_parts(d_raw, n * n) };
-    let mut r = unsafe { std::slice::from_raw_parts_mut(r_raw, n * n) };
+// Raw pointers can be dereferenced only inside 'unsafe' sections, hence function is marked as unsafe
+pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
+    // Wrap raw pointers into 'not unsafe' Rust slices
+    let d = std::slice::from_raw_parts(d_raw, n * n);
+    let mut r = std::slice::from_raw_parts_mut(r_raw, n * n);
+    // Evaluate Rust implementation of the step-function
     _step(&mut r, d, n);
 }

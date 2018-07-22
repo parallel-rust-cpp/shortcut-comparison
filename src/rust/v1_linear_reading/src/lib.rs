@@ -1,12 +1,12 @@
-use std::vec;
-
 // OpenMP does not support Rust, but the Rayon library comes close with its parallel iterators
 extern crate rayon;
-use rayon::prelude::*; // par_chunks_mut
+use rayon::prelude::*; // Parallel chunks iterator
 
+
+#[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // Transpose of d
-    let mut t: vec::Vec<f32> = vec![0.0; n * n];
+    let mut t = vec![0.0; n * n];
     for i in 0..n {
         for j in 0..n {
             t[n*j + i] = d[n*i + j];
@@ -29,8 +29,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
-    let d = unsafe { std::slice::from_raw_parts(d_raw, n * n) };
-    let mut r = unsafe { std::slice::from_raw_parts_mut(r_raw, n * n) };
+pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
+    let d = std::slice::from_raw_parts(d_raw, n * n);
+    let mut r = std::slice::from_raw_parts_mut(r_raw, n * n);
     _step(&mut r, d, n);
 }
