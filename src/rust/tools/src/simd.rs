@@ -35,6 +35,32 @@ pub fn swap(v: __m256, width: i8) -> __m256 {
     }
 }
 
+/// Use an index to extract a single f32 from a 256-bit vector of single precision floats
+pub fn extract(v: __m256, i: u8) -> f32 {
+    // Create a permutation of v such that the 32 lowest bits correspond to the ith 32-bit chunk of v
+    let permuted = match i {
+        7 => v,
+        6 => swap(v, 1),
+        5 => swap(v, 2),
+        4 => swap(swap(v, 1), 2),
+        3 => swap(v, 4),
+        2 => swap(swap(v, 1), 4),
+        1 => swap(swap(v, 2), 4),
+        0 => swap(swap(swap(v, 1), 2), 4),
+        _ => panic!("Invalid index for vector containing 8 elements"),
+    };
+    // Extract the lowest 32 bits
+    unsafe { _mm256_cvtss_f32(permuted) }
+}
+
+/// Print the contents of a 256-bit vector
+pub fn print_vec(v: __m256, padding: usize, precision: usize) {
+    for i in 0..M256_LENGTH as u8 {
+        let x: f32 = extract(v, i);
+        print!("{:padding$.precision$} ", x, padding=padding, precision=precision);
+    }
+}
+
 /// Return the smallest element from a 256-bit float vector
 /// v              = [0, 1, 2, 3, 4, 5, 6, 7]
 /// swap(v, 1)     = [1, 0, 3, 2, 5, 4, 7, 6]
