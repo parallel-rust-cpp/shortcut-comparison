@@ -38,19 +38,19 @@ All executables for testing each version of the `step` function are in the `buil
 
 ## Testing
 
-Make sure all implementations of the step function yield results equal to the output of the C++ v0 baseline implementation:
+Test all implementations against the C++ v0 baseline implementation:
 ```
 ./test.py
 ```
 
-## Running
+## Benchmarking
 
-### Everything at once
-
-See
+See:
 ```
 ./bench.py --help
 ```
+
+### Everything at once
 
 Examples:
 
