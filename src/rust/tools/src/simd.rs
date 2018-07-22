@@ -64,6 +64,16 @@ pub fn print_vec(v: __m256, padding: usize, precision: usize) {
     }
 }
 
+#[inline]
+pub fn add(v: __m256, w: __m256) -> __m256 {
+    unsafe { _mm256_add_ps(v, w) }
+}
+
+#[inline]
+pub fn min(v: __m256, w: __m256) -> __m256 {
+    unsafe { _mm256_min_ps(v, w) }
+}
+
 /// Return the smallest element from a 256-bit float vector
 /// v              = [0, 1, 2, 3, 4, 5, 6, 7]
 /// swap(v, 1)     = [1, 0, 3, 2, 5, 4, 7, 6]
@@ -75,21 +85,9 @@ pub fn print_vec(v: __m256, padding: usize, precision: usize) {
 ///
 #[inline]
 pub fn horizontal_min(v: __m256) -> f32 {
-    unsafe {
-        let min_1 = _mm256_min_ps(swap(v, 1), v);
-        let min_2 = _mm256_min_ps(swap(min_1, 2), min_1);
-        let min_4 = _mm256_min_ps(swap(min_2, 4), min_2);
-        // All elements of min_4 are the minimum of v, extract the lowest 32 bits
-        _mm256_cvtss_f32(min_4)
-    }
-}
-
-#[inline]
-pub fn add(v: __m256, w: __m256) -> __m256 {
-    unsafe { _mm256_add_ps(v, w) }
-}
-
-#[inline]
-pub fn min(v: __m256, w: __m256) -> __m256 {
-    unsafe { _mm256_min_ps(v, w) }
+    let min_1 = min(swap(v, 1), v);
+    let min_2 = min(swap(min_1, 2), min_1);
+    let min_4 = min(swap(min_2, 4), min_2);
+    // All elements of min_4 are the minimum of v, extract the lowest 32 bits
+    unsafe { _mm256_cvtss_f32(min_4) }
 }
