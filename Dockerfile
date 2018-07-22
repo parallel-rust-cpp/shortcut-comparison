@@ -1,7 +1,7 @@
 FROM base/archlinux:2018.06.01
 RUN pacman --sync --refresh --sysupgrade --noconfirm
-RUN pacman --sync --noconfirm perf gcc make cmake git python3 rustup
-RUN rustup install nightly
-RUN rustup default nightly
-RUN rustup update
-RUN git clone --depth 1 https://github.com/matiaslindgren/shortcut-comparison.git
+    && pacman --sync --noconfirm curl tar perf gcc make cmake python3 rustup \
+    && rustup install nightly \
+    && rustup default nightly \
+    && rustup update \
+    && curl --location https://github.com/matiaslindgren/shortcut-comparison/archive/master.tar.gz | tar --extract --gunzip --strip-components 1
