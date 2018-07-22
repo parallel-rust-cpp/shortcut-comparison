@@ -41,12 +41,20 @@ rustup update
 ```
 
 If you prefer to run compiled things in Docker containers, a simple Dockerfile is available.
+It produces an image of about 1 GB.
+In order to use the `perf` tool from within the container, you need to run the container with elevated [privileges](https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities).
+Also [relevant](https://stackoverflow.com/questions/44745987/use-perf-inside-a-docker-container-without-privileged).
 
-Build and run:
+Build the image:
 ```
-docker build --tag shortcut:latest .
-docker run --rm -it shortcut:latest
+docker build --rm --tag shortcut:latest .
 ```
+Create a temporary container and run it with [CAP_SYS_ADMIN](https://linux.die.net/man/7/capabilities) privileges:
+```
+docker run --rm -it --cap-add SYS_ADMIN shortcut:latest
+```
+
+The container should have all dependencies needed to run the commands shown below.
 
 ## Building
 
