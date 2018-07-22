@@ -15,6 +15,9 @@ COMMANDS = {
         "env": {"RUSTFLAGS": "-C target-cpu=native"},
         "cmd": ["cargo", "build", "--release"],
     },
+    "make": {
+        "cmd": ["make", "--jobs", "8"],
+    },
 }
 
 STEP_IMPLEMENTATIONS = [
@@ -78,5 +81,5 @@ if __name__ == "__main__":
         run(cargo_build, crate_dir, args.verbose)
 
     print_header("Building C++ libraries and benchmarks")
-    run({"cmd": ["make"]}, build_dir, args.verbose)
+    run(COMMANDS["make"], build_dir, args.verbose)
 
