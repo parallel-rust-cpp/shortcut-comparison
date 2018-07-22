@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -march=native -g -O3 -Wall -pedantic")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(BENCHMARK_SOURCES common/main.cpp common/step_reference.cpp)
+set(BENCHMARK_SOURCES main/main.cpp main/step_reference.cpp)
 
 # The Unix module in Rust depends on pthreads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -28,15 +28,15 @@ foreach(step_impl ${step_implementations})
     # Create C++ benchmark executable
     set(CPP_BENCHMARK_BIN "${step_impl}_cpp")
     add_executable(${CPP_BENCHMARK_BIN} ${BENCHMARK_SOURCES})
-    target_include_directories(${CPP_BENCHMARK_BIN} PRIVATE common)
-    target_include_directories(${CPP_STEP_LIB} PRIVATE common)
+    target_include_directories(${CPP_BENCHMARK_BIN} PRIVATE main)
+    target_include_directories(${CPP_STEP_LIB} PRIVATE main)
     target_include_directories(${CPP_STEP_LIB} PRIVATE cpp/tools)
     target_link_libraries(${CPP_BENCHMARK_BIN} ${CPP_STEP_LIB})
 
     # Create Rust benchmark executable
     set(RUST_BENCHMARK_BIN "${step_impl}_rust")
     add_executable(${RUST_BENCHMARK_BIN} ${BENCHMARK_SOURCES})
-    target_include_directories(${RUST_BENCHMARK_BIN} PRIVATE common)
+    target_include_directories(${RUST_BENCHMARK_BIN} PRIVATE main)
     target_link_libraries(${RUST_BENCHMARK_BIN}
         Threads::Threads
         ${RUST_STEP_LIB}
