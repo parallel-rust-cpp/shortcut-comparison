@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <limits>
 #include <cstdlib>
+#include <x86intrin.h>
 
 // GCC only
 typedef float float8_t __attribute__ ((vector_size (8 * sizeof(float))));
@@ -33,4 +34,16 @@ inline float hmin8(const float8_t& v) {
 // Return a vector of the minimum elements for each pair of elements of two float8 vectors
 inline float8_t min8(const float8_t& v, const float8_t& w) {
     return v < w ? v : w;
+}
+
+inline float8_t swap4(float8_t x) {
+    return _mm256_permute2f128_ps(x, x, 0b00000001);
+}
+
+inline float8_t swap2(float8_t x) {
+    return _mm256_permute_ps(x, 0b01001110);
+}
+
+inline float8_t swap1(float8_t x) {
+    return _mm256_permute_ps(x, 0b10110001);
 }

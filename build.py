@@ -26,6 +26,7 @@ STEP_IMPLEMENTATIONS = [
     "v2_instr_level_parallelism",
     "v3_simd",
     "v4_register_reuse",
+    "v5_more_register_reuse",
 ]
 
 

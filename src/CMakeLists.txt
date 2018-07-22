@@ -16,7 +16,8 @@ list(APPEND step_implementations
     v1_linear_reading
     v2_instr_level_parallelism
     v3_simd
-    v4_register_reuse)
+    v4_register_reuse
+    v5_more_register_reuse)
 
 foreach(step_impl ${step_implementations})
     set(CPP_STEP_LIB "${step_impl}_cpp_lib")
