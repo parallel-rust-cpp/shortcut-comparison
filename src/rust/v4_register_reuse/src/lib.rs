@@ -13,12 +13,12 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // Cache blocking with 3x3 blocks containing 9 m256 vectors
     #[allow(non_upper_case_globals)]
     const blocksize: usize = 3;
-    let blocks_per_n = (n + blocksize - 1) / blocksize;
-    let padded_n = blocksize * blocks_per_n;
+    let blocks_per_col = (n + blocksize - 1) / blocksize;
+    let padded_height = blocksize * blocks_per_col;
 
     // Pack d and its transpose into m256 vectors, each containing 8 f32::INFINITYs
-    let mut vt = std::vec::Vec::with_capacity(padded_n * vecs_per_row);
-    let mut vd = std::vec::Vec::with_capacity(padded_n * vecs_per_row);
+    let mut vt = std::vec::Vec::with_capacity(padded_height * vecs_per_row);
+    let mut vd = std::vec::Vec::with_capacity(padded_height * vecs_per_row);
     for row in 0..n {
         for col in 0..vecs_per_row {
             // Build 8 element arrays for vd and vt, with infinity padding
@@ -36,46 +36,43 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             vt.push(simd::from_slice(&t_slice));
         }
     }
-    // Fill padded rows with infinity
+    // Fill out of bounds rows, if any exist, with infinity
     let inf_slice = [std::f32::INFINITY; m256_length];
-    for _ in n..padded_n {
+    for _ in n..padded_height {
         for _ in 0..vecs_per_row {
             vd.push(simd::from_slice(&inf_slice));
             vt.push(simd::from_slice(&inf_slice));
         }
     }
 
-    // Partition the result slice into rows of blocks, and compute result for each row in parallel
-    r.par_chunks_mut(blocks_per_n).enumerate().for_each(|(i, block_row)| {
-        for j in 0..blocks_per_n {
+    // Partition the result slice into blocks of rows, each containing blocksize of rows
+    // Then, compute the result of each row block in parallel
+    r.par_chunks_mut(blocksize * n).enumerate().for_each(|(i, row_block)| {
+        for j in 0..blocks_per_col {
             // m256 vector block containing blocksize ** 2 vectors
             let mut tmp = [[simd::f8infty(); blocksize]; blocksize];
-            // Compute blocksize ** 2 values in one iteration
+            // Horizontally compute minimums into one block on this row block containing blocksize of rows
             for col in 0..vecs_per_row {
-                let x0 = vd[vecs_per_row * i * blocksize + col];
-                let x1 = vd[vecs_per_row * (i * blocksize + 1) + col];
-                let x2 = vd[vecs_per_row * (i * blocksize + 2) + col];
-                let y0 = vt[vecs_per_row * j * blocksize + col];
-                let y1 = vt[vecs_per_row * (j * blocksize + 1) + col];
-                let y2 = vt[vecs_per_row * (j * blocksize + 2) + col];
-                tmp[0][0] = simd::min(tmp[0][0], simd::add(x0, y0));
-                tmp[0][1] = simd::min(tmp[0][1], simd::add(x0, y1));
-                tmp[0][2] = simd::min(tmp[0][2], simd::add(x0, y2));
-                tmp[1][0] = simd::min(tmp[1][0], simd::add(x1, y0));
-                tmp[1][1] = simd::min(tmp[1][1], simd::add(x1, y1));
-                tmp[1][2] = simd::min(tmp[1][2], simd::add(x1, y2));
-                tmp[2][0] = simd::min(tmp[2][0], simd::add(x2, y0));
-                tmp[2][1] = simd::min(tmp[2][1], simd::add(x2, y1));
-                tmp[2][2] = simd::min(tmp[2][2], simd::add(x2, y2));
+                for block_i in 0..blocksize {
+                    for block_j in 0..blocksize {
+                        let x = vd[vecs_per_row * (i * blocksize + block_i) + col];
+                        let y = vt[vecs_per_row * (j * blocksize + block_j) + col];
+                        let z = simd::add(x, y);
+                        tmp[block_i][block_j] = simd::min(tmp[block_i][block_j], z);
+                    }
+                }
             }
-            // Reduce all block vectors to assign blocksize ** 2 of final results
+            // Reduce all vectors in block to minimums and assign final results
             for block_i in 0..blocksize {
                 for block_j in 0..blocksize {
                     let res_i = i * blocksize + block_i;
                     let res_j = j * blocksize + block_j;
                     if res_i < n && res_j < n {
-                        let v = tmp[block_i][block_j];
-                        block_row[res_j] = simd::horizontal_min(v);
+                        // Reduce one vector to final result
+                        let res = simd::horizontal_min(tmp[block_i][block_j]);
+                        // The row-index is from the perspective of the current row_block of r, not rows of r,
+                        // hence block_i and not res_i
+                        row_block[block_i * n + res_j] = res;
                     }
                 }
             }
