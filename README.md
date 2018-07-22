@@ -9,11 +9,11 @@ Version | Status |Description
 `v0_baseline` | 1 | Straightforward solution with 3 for-loops and no preprocessing
 `v1_linear_reading` | 1 | Copy input and create its transpose, enabling a linear memory access pattern
 `v2_instr_level_parallelism` | 1 | Break instruction dependency chains for improved CPU instruction throughput
-`v3_simd` | 1 | Use vector registers and SIMD instructions explicitly for a reduced amount of required CPU instructions
-`v4_register_reuse` | 1 | Read vectors in blocks of 6 and do 9+9 arithmetic operations for improved data locality; operations per memory access: 3 to 1
-`v5_more_register_reuse` | 1 | Reorder the vector representation of the input from horizontal to vertical. Read the vertical vector data in blocks of 2 and do 8+8 arithmetic operations; operations per memory access: 8 to 1
-`v6_prefetching` | 0 | Add software prefetching hints for improved memory throughput
-`v7_cache_reuse` | 0 | Add Z-order curve memory access pattern for improved cache reuse
+`v3_simd` | 1 | Use vector registers and SIMD instructions explicitly for reducing the amount of required CPU instructions
+`v4_register_reuse` | 1 | Read vectors in blocks of 6 and do 9+9 arithmetic operations for an improved operations per memory access ratio
+`v5_more_register_reuse` | 1 | Reorder the vector representation of the input from horizontal to vertical. Read the vertical vector data in pairs and do 8+8 arithmetic operations, improving the ratio of operations per memory access even further
+`v6_prefetching` | 0 | Add software prefetching hints for improving memory throughput
+`v7_cache_reuse` | 0 | Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern for improving cache reuse
 
 
 ## Requirements
@@ -38,6 +38,14 @@ If you installed the `rustup` binary:
 rustup install nightly
 rustup default nightly
 rustup update
+```
+
+If you prefer to run compiled things in Docker containers, a simple Dockerfile is available.
+
+Build and run, e.g.
+```
+docker build --tag shortcut:latest .
+docker run --rm -it shortcut:latest
 ```
 
 ## Building
