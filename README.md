@@ -42,7 +42,7 @@ rustup update
 
 If you prefer to run compiled things in Docker containers, a simple Dockerfile is available.
 
-Build and run, e.g.
+Build and run:
 ```
 docker build --tag shortcut:latest .
 docker run --rm -it shortcut:latest
