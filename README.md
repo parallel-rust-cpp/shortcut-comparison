@@ -11,7 +11,7 @@ Version | Status |Description
 `v2_instr_level_parallelism` | 1 | Break instruction dependency chains for improved CPU instruction throughput
 `v3_simd` | 1 | Use vector registers and SIMD instructions explicitly for a reduced amount of required CPU instructions
 `v4_register_reuse` | 1 | Read vectors in blocks of 6 and do 9+9 arithmetic operations for improved data locality; operations per memory access: 3 to 1
-`v5_more_register_reuse` | 0 | Reorder the vector representation of the input from horizontal to vertical. Read the vertical vector data in blocks of 2 and do 8+8 arithmetic operations; operations per memory access: 8 to 1
+`v5_more_register_reuse` | 1 | Reorder the vector representation of the input from horizontal to vertical. Read the vertical vector data in blocks of 2 and do 8+8 arithmetic operations; operations per memory access: 8 to 1
 `v6_prefetching` | 0 | Add software prefetching hints for improved memory throughput
 `v7_cache_reuse` | 0 | Add Z-order curve memory access pattern for improved cache reuse
 
