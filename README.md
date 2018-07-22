@@ -28,9 +28,9 @@ rustup update
 
 ## Building
 
-Run the provided build script (use `--verbose` because errors are not yet caught properly):
+Run the provided build script, (use `--verbose` because errors are not yet caught properly):
 ```
-env RUSTFLAGS="-C target-cpu=native" ./build.py --verbose
+./build.py --verbose
 ```
 Assuming all dependencies have been installed, this will create an out of source build into the directory `./build`.
 
@@ -40,21 +40,38 @@ All executables for testing each version of the `step` function are in the `buil
 
 Make sure all implementations of the step function yield results equal to the output of the C++ v0 baseline implementation:
 ```
-./test.py build/bin
+./test.py
 ```
 
 ## Running
 
 ### Everything at once
 
+See
+```
+./bench.py --help
+```
+
+Examples:
+
 Run all benchmarks with `perf stat`, using one thread and 5 smallest sizes for input:
 ```
-./bench.py build/bin -n 5
+./bench.py -m 5
+```
+
+Run all benchmarks, will take considerably more time than the previous command:
+```
+./bench.py
 ```
 
 All benchmark sizes, 4 threads and only the linear reading implementations:
 ```
-./bench.py build/bin -t 4 -i v1
+./bench.py -t 4 -i v1
+```
+
+Inputs of size 2500 and 4000, 4 threads and only the SIMD implementations:
+```
+./bench.py -n 7 -m 9 -t 4 -i v1
 ```
 
 ### Single benchmark

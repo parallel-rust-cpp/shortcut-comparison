@@ -1,12 +1,4 @@
 #!/usr/bin/python3
-"""
-measure function f(n) where n is input size and f is:
-    * instructions per second (billions)
-    * instructions per cycle (around 1.0)
-    * cycles (billions)
-    * total and max heap usage bytes
-    * total amount of allocs
-"""
 import argparse
 import os
 import subprocess
@@ -32,10 +24,9 @@ def run_perf(cmd, num_threads):
     Run given command string with perf-stat and return results in dict.
     """
     perf_cmd = "perf stat --detailed --detailed --field-separator ,".split(' ')
-    env = {
-        "OMP_NUM_THREADS": str(num_threads),
-        "RAYON_NUM_THREADS": str(num_threads)
-    }
+    env = dict(os.environ.copy(),
+        OMP_NUM_THREADS=str(num_threads),
+        RAYON_NUM_THREADS=str(num_threads))
     result = subprocess.run(
         perf_cmd + cmd.split(' '),
         stdout=subprocess.PIPE,
@@ -46,22 +37,23 @@ def run_perf(cmd, num_threads):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("build_dir",
+    parser = argparse.ArgumentParser(description="Run benchmark binaries for comparing C++ and Rust implementations of the step function")
+    parser.add_argument("--build_dir", "-b",
         type=str,
-        help="Path to the benchmark binaries")
+        default=os.path.join(os.path.curdir, "build", "bin"),
+        help="Path to the benchmark binaries, if not the default from build.py.")
     parser.add_argument("--limit_input_size_begin", "-n",
-        type=int,
-        default=len(INPUT_SIZES),
-        help="n in sizes[:n], where sizes is {}".format(INPUT_SIZES))
-    parser.add_argument("--limit_input_size_end", "-m",
         type=int,
         default=0,
         help="n in sizes[n:], where sizes is {}".format(INPUT_SIZES))
+    parser.add_argument("--limit_input_size_end", "-m",
+        type=int,
+        default=len(INPUT_SIZES),
+        help="m in sizes[:m], where sizes is {}".format(INPUT_SIZES))
     parser.add_argument("--threads", "-t",
         type=int,
         default=1,
-        help="Value for environment variables controlling number of threads")
+        help="Value for environment variables controlling number of threads, defaults to 1")
     parser.add_argument("--implementation", "-i",
         type=str,
         help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")

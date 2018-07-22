@@ -24,9 +24,10 @@ def run(cmd, num_threads):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("build_dir",
+    parser.add_argument("--build_dir", "-b",
         type=str,
-        help="Path to the benchmark binaries")
+        default=os.path.join(os.path.curdir, "build", "bin"),
+        help="Path to the benchmark binaries, if not the default from build.py.")
     parser.add_argument("--threads", "-t",
         type=int,
         default=1,
