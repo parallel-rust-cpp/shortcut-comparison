@@ -2,5 +2,5 @@ This C++ implementation is the reference solution to the shortcut problem, and h
 
 All subdirectories prefixed with `v?_` contain incrementally improved versions of the initial baseline solution `v0`.
 
-The preferred way of building the project is to run the Python script 'build.py', from the repository root directory.
+Use the [`build.py` script](/build.py) to compile these libraries.
 
