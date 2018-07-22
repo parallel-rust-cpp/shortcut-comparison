@@ -84,3 +84,4 @@ RAYON_NUM_THREADS=8 ./build/bin/v2_instr_level_parallelism_rust benchmark 4000 2
 ### Findings
 
 * Linking Rust static libraries into benchmarking tools compiled from C++ incurs significant overhead in the form of excessive amounts of CPU cycles. Maybe the benchmarking code needs to also be written in Rust to make sure there is no weirdness from FFI.
+* The Rust compiler seems to be rather lenient what comes to automatically inlining cross-crate function calls. By making the hottest functions in the `tools::simd` module eligible for inlining (by adding the `#[inline]` attribute), the amount of CPU cycles during benchmarking was reduced by a factor of 10.

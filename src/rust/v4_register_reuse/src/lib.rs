@@ -4,7 +4,7 @@ use rayon::prelude::*; // Parallel chunks iterator
 extern crate tools;
 use tools::simd; // Custom SIMD helpers
 
-
+#[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
     #[allow(non_upper_case_globals)]
     const m256_length: usize = simd::M256_LENGTH;

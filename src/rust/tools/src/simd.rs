@@ -5,11 +5,13 @@ use std::f32;
 pub const M256_LENGTH: usize = 8;
 
 /// Return a 256-bit vector containing 8 infinity values
+#[inline]
 pub fn f8infty() -> __m256 {
     unsafe { _mm256_set1_ps(f32::INFINITY) }
 }
 
 /// Create a 256-bit vector from a f32 slice of length 8
+#[inline]
 pub fn from_slice(row: &[f32]) -> __m256 {
     unsafe { _mm256_set_ps(row[0], row[1], row[2], row[3],
                            row[4], row[5], row[6], row[7]) }
@@ -26,6 +28,7 @@ pub fn from_slice(row: &[f32]) -> __m256 {
 /// Reading from right to left in 2 bit chunks we get (1, 0, 3, 2),
 /// and (5, 4, 7, 6) for the 2nd 128-bit lane.
 ///
+#[inline]
 pub fn swap(v: __m256, width: i8) -> __m256 {
     match width {
         1 => unsafe { _mm256_shuffle_ps(v, v, 0b_10_11_00_01) },
@@ -70,6 +73,7 @@ pub fn print_vec(v: __m256, padding: usize, precision: usize) {
 /// swap(min_2, 4) = [4, 4, 4, 4, 0, 0, 0, 0]
 /// min_4          = [0, 0, 0, 0, 0, 0, 0, 0]
 ///
+#[inline]
 pub fn horizontal_min(v: __m256) -> f32 {
     unsafe {
         let min_1 = _mm256_min_ps(swap(v, 1), v);
@@ -80,10 +84,12 @@ pub fn horizontal_min(v: __m256) -> f32 {
     }
 }
 
+#[inline]
 pub fn add(v: __m256, w: __m256) -> __m256 {
     unsafe { _mm256_add_ps(v, w) }
 }
 
+#[inline]
 pub fn min(v: __m256, w: __m256) -> __m256 {
     unsafe { _mm256_min_ps(v, w) }
 }
