@@ -1,12 +1,20 @@
 #!/usr/bin/python3
+"""
+Awkward build script, should be in Rust.
+"""
 import argparse
 import subprocess
 import os
 
 
 COMMANDS = {
-    "cmake-generate": ["cmake", "-G", "Unix Makefiles"],
-    "cargo-build": ["cargo", "build", "--release"],
+    "cmake-generate": {
+        "cmd": ["cmake", "-G", "Unix Makefiles"],
+    },
+    "cargo-build": {
+        "env": {"RUSTFLAGS": "-C target-cpu=native"},
+        "cmd": ["cargo", "build", "--release"],
+    },
 }
 
 STEP_IMPLEMENTATIONS = [
@@ -19,7 +27,8 @@ STEP_IMPLEMENTATIONS = [
 
 
 def run(cmd, cwd, verbose=False):
-    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd)
+    newenv = dict(os.environ.copy(), **cmd.get("env", {}))
+    popen = subprocess.Popen(cmd["cmd"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd, env=newenv)
     for line in popen.stdout:
         if verbose:
             print(line.decode(), end='')
@@ -57,14 +66,17 @@ if __name__ == "__main__":
         os.mkdir(cargo_target_dir)
 
     print_header("Generating makefiles")
-    run(COMMANDS["cmake-generate"] + [root_dir], build_dir, args.verbose)
+    cmake_gen = COMMANDS["cmake-generate"]
+    cmake_gen["cmd"] += [root_dir]
+    run(cmake_gen, build_dir, args.verbose)
 
     print_header("Building Rust libraries")
-    os.environ["CARGO_TARGET_DIR"] = cargo_target_dir
+    cargo_build = COMMANDS["cargo-build"]
+    cargo_build["env"]["CARGO_TARGET_DIR"] = cargo_target_dir
     for step_impl in STEP_IMPLEMENTATIONS:
         crate_dir = os.path.join(root_dir, "rust", step_impl)
-        run(COMMANDS["cargo-build"], crate_dir, args.verbose)
+        run(cargo_build, crate_dir, args.verbose)
 
     print_header("Building C++ libraries and benchmarks")
-    run(["make"], build_dir, args.verbose)
+    run({"cmd": ["make"]}, build_dir, args.verbose)
 
