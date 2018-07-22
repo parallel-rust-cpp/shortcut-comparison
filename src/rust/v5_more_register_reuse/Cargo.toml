@@ -1,0 +1,12 @@
+[package]
+name = "v5_more_register_reuse"
+version = "0.1.0"
+
+[dependencies]
+rayon = "1.0.*"
+tools = { path = "../tools" }
+
+[lib]
+name = "v5_more_register_reuse"
+crate-type = ["staticlib"]
+path = "src/lib.rs"
