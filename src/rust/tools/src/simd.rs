@@ -4,9 +4,9 @@ use std::f32;
 /// Amount of f32 elements in a 256-bit vector, aka __m256
 pub const M256_LENGTH: usize = 8;
 
-/// Return a 256-bit vector containing 8 infinity values
+/// Return a 256-bit vector containing 8 infinity values for f32
 #[inline]
-pub fn f8infty() -> __m256 {
+pub fn m256_infty() -> __m256 {
     unsafe { _mm256_set1_ps(f32::INFINITY) }
 }
 

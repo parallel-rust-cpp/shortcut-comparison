@@ -35,7 +35,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // Partition the result slice into n rows, and compute result for each row in parallel
     r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
         for j in 0..n {
-            let mut tmp = simd::f8infty();
+            let mut tmp = simd::m256_infty();
             for col in 0..vecs_per_row {
                 let x = vd[vecs_per_row * i + col];
                 let y = vt[vecs_per_row * j + col];

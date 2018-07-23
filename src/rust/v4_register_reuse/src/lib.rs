@@ -52,7 +52,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     r.par_chunks_mut(blocksize * n).enumerate().for_each(|(i, row_block)| {
         for j in 0..blocks_per_col {
             // m256 vector block containing blocksize ** 2 vectors
-            let mut tmp = [[simd::f8infty(); blocksize]; blocksize];
+            let mut tmp = [[simd::m256_infty(); blocksize]; blocksize];
             // Horizontally compute minimums into one block on this row block containing blocksize of rows
             for col in 0..vecs_per_row {
                 for block_i in 0..blocksize {

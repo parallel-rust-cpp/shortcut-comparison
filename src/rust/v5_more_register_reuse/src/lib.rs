@@ -38,7 +38,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     r.par_chunks_mut(m256_length * n).enumerate().for_each(|(i, row_block)| {
         for j in 0..vecs_per_col {
             // Intermediate results
-            let mut tmp = [simd::f8infty(); m256_length];
+            let mut tmp = [simd::m256_infty(); m256_length];
 
             // Horizontally compute 8 minimums from each pair of vertical vectors for this row block
             for col in 0..n {
