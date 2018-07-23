@@ -58,11 +58,21 @@ if __name__ == "__main__":
             action='store_true',
             help="Show all output from build commands",
             default=False)
+    parser.add_argument("--cmake",
+            help="Specify cmake binary to use instead of 'cmake'")
+    parser.add_argument("--cxx",
+            help="Specify CXX environment variable to be used when running cmake")
 
     args = parser.parse_args()
     root_dir =  os.path.abspath(args.source_root)
     build_dir = os.path.abspath(args.build_dir)
     cargo_target_dir = os.path.join(build_dir, "rust_cargo")
+
+    if args.cmake is not None:
+        COMMANDS["cmake-generate"]["cmd"][0] = args.cmake
+    if args.cxx is not None:
+        cmake_env = COMMANDS["cmake-generate"].get("env", {})
+        COMMANDS["cmake-generate"]["env"] = dict(cmake_env, CXX=args.cxx)
 
     if not os.path.exists(build_dir):
         os.mkdir(build_dir)
@@ -83,4 +93,3 @@ if __name__ == "__main__":
 
     print_header("Building C++ libraries and benchmarks")
     run(COMMANDS["make"], build_dir, args.verbose)
-
