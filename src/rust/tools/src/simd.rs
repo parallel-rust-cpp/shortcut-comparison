@@ -10,11 +10,27 @@ pub fn f8infty() -> __m256 {
     unsafe { _mm256_set1_ps(f32::INFINITY) }
 }
 
+#[inline]
+pub fn add(v: __m256, w: __m256) -> __m256 {
+    unsafe { _mm256_add_ps(v, w) }
+}
+
+#[inline]
+pub fn min(v: __m256, w: __m256) -> __m256 {
+    unsafe { _mm256_min_ps(v, w) }
+}
+
+/// Extract the lowest 32 bits of 256-bit vector as a float
+#[inline]
+pub fn lowestf32(v: __m256) -> f32 {
+    unsafe { _mm256_cvtss_f32(v) }
+}
+
 /// Create a 256-bit vector from a f32 slice of length 8
 #[inline]
-pub fn from_slice(row: &[f32]) -> __m256 {
-    unsafe { _mm256_set_ps(row[0], row[1], row[2], row[3],
-                           row[4], row[5], row[6], row[7]) }
+pub fn from_slice(s: &[f32]) -> __m256 {
+    unsafe { _mm256_set_ps(s[0], s[1], s[2], s[3],
+                           s[4], s[5], s[6], s[7]) }
 }
 
 /// Permute 1, 2, or 4 element ranges with their neighbors.
@@ -54,25 +70,7 @@ pub fn extract(v: __m256, i: u8) -> f32 {
         _ => panic!("Invalid index for vector containing 8 elements"),
     };
     // Extract the lowest 32 bits
-    unsafe { _mm256_cvtss_f32(permuted) }
-}
-
-/// Print the contents of a 256-bit vector
-pub fn print_vec(v: __m256, padding: usize, precision: usize) {
-    for i in 0..M256_LENGTH as u8 {
-        let x: f32 = extract(v, i);
-        print!("{:padding$.precision$} ", x, padding=padding, precision=precision);
-    }
-}
-
-#[inline]
-pub fn add(v: __m256, w: __m256) -> __m256 {
-    unsafe { _mm256_add_ps(v, w) }
-}
-
-#[inline]
-pub fn min(v: __m256, w: __m256) -> __m256 {
-    unsafe { _mm256_min_ps(v, w) }
+    lowestf32(permuted)
 }
 
 /// Return the smallest element from a 256-bit float vector
@@ -90,5 +88,13 @@ pub fn horizontal_min(v: __m256) -> f32 {
     let min_2 = min(swap(min_1, 2), min_1);
     let min_4 = min(swap(min_2, 4), min_2);
     // All elements of min_4 are the minimum of v, extract the lowest 32 bits
-    unsafe { _mm256_cvtss_f32(min_4) }
+    lowestf32(min_4)
+}
+
+/// Print the contents of a 256-bit vector
+pub fn print_vec(v: __m256, padding: usize, precision: usize) {
+    for i in 0..M256_LENGTH as u8 {
+        let x: f32 = extract(v, i);
+        print!("{:padding$.precision$} ", x, padding=padding, precision=precision);
+    }
 }
