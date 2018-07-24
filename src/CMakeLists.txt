@@ -18,7 +18,8 @@ list(APPEND step_implementations
     v3_simd
     v4_register_reuse
     v5_more_register_reuse
-    v6_prefetch)
+    v6_prefetch
+    v7_cache_reuse)
 
 foreach(step_impl ${step_implementations})
     set(CPP_STEP_LIB "${step_impl}_cpp_lib")

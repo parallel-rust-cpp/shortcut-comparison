@@ -28,6 +28,7 @@ STEP_IMPLEMENTATIONS = [
     "v4_register_reuse",
     "v5_more_register_reuse",
     "v6_prefetch",
+    "v7_cache_reuse"
 ]
 
 
