@@ -1,0 +1,12 @@
+[package]
+name = "v6_prefetch"
+version = "0.1.0"
+
+[dependencies]
+rayon = "1.0.*"
+tools = { path = "../tools" }
+
+[lib]
+name = "v6_prefetch"
+crate-type = ["staticlib"]
+path = "src/lib.rs"

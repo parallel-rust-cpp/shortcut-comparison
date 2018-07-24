@@ -1,6 +1,8 @@
 use std::arch::x86_64::*; // Intel SIMD intrinsic mappings
 use std::f32;
 
+use std::intrinsics;
+
 /// Amount of f32 elements in a 256-bit vector, aka __m256
 pub const M256_LENGTH: usize = 8;
 
@@ -52,6 +54,11 @@ pub fn swap(v: __m256, width: i8) -> __m256 {
         4 => unsafe { _mm256_permute2f128_ps(v, v, 1) },
         _ => panic!("Invalid shuffle control for 256-bit vector, must be 1, 2, or 4"),
     }
+}
+
+#[inline]
+pub fn prefetch(p: *const __m256, length: isize) {
+    unsafe { intrinsics::prefetch_read_data(p.offset(length), 2) }
 }
 
 /// Use an index to extract a single f32 from a 256-bit vector of single precision floats

@@ -27,6 +27,7 @@ STEP_IMPLEMENTATIONS = [
     "v3_simd",
     "v4_register_reuse",
     "v5_more_register_reuse",
+    "v6_prefetch",
 ]
 
 
