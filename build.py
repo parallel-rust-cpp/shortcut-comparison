@@ -5,6 +5,7 @@ Awkward build script, should be in Rust.
 import argparse
 import subprocess
 import os
+import sys
 
 
 COMMANDS = {
@@ -34,10 +35,11 @@ STEP_IMPLEMENTATIONS = [
 
 def run(cmd, cwd, verbose=False):
     newenv = dict(os.environ.copy(), **cmd.get("env", {}))
-    popen = subprocess.Popen(cmd["cmd"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd, env=newenv)
-    for line in popen.stdout:
+    proc = subprocess.run(cmd["cmd"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd, env=newenv, encoding="utf-8")
+    for line in proc.stdout:
         if verbose:
-            print(line.decode(), end='')
+            print(line, end='')
+    return proc.returncode
 
 class color:
     bold = '\033[1m'
@@ -84,14 +86,20 @@ if __name__ == "__main__":
     print_header("Generating makefiles")
     cmake_gen = COMMANDS["cmake-generate"]
     cmake_gen["cmd"] += [root_dir]
-    run(cmake_gen, build_dir, args.verbose)
+    returncode = run(cmake_gen, build_dir, args.verbose)
+    if returncode > 0:
+        sys.exit(returncode)
 
     print_header("Building Rust libraries")
     cargo_build = COMMANDS["cargo-build"]
     cargo_build["env"]["CARGO_TARGET_DIR"] = cargo_target_dir
     for step_impl in STEP_IMPLEMENTATIONS:
         crate_dir = os.path.join(root_dir, "rust", step_impl)
-        run(cargo_build, crate_dir, args.verbose)
+        returncode = run(cargo_build, crate_dir, args.verbose)
+        if returncode > 0:
+            sys.exit(returncode)
 
     print_header("Building C++ libraries and benchmarks")
-    run(COMMANDS["make"], build_dir, args.verbose)
+    returncode = run(COMMANDS["make"], build_dir, args.verbose)
+    if returncode > 0:
+        sys.exit(returncode)
