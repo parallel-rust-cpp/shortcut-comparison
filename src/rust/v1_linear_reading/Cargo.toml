@@ -3,9 +3,8 @@ name = "v1_linear_reading"
 version = "0.1.0"
 
 [dependencies]
-rayon = "1.0.1"
+rayon = "1.0.*"
 
 [lib]
 name = "v1_linear_reading"
 crate-type = ["staticlib"]
-path = "src/lib.rs"

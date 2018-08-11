@@ -43,6 +43,8 @@ void step(float* r, const float* d_, int n) {
         float8_t vv101 = f8infty;
         float8_t vv110 = f8infty;
         float8_t vv111 = f8infty;
+
+        // Compute partial results for one chunk of columns
         for (int k = 0; k < n; ++k) {
             constexpr int PF = 20;
             __builtin_prefetch(&vd[n*ia + k + PF]);
@@ -62,6 +64,7 @@ void step(float* r, const float* d_, int n) {
             vv110 = min8(vv110, a110 + b000);
             vv111 = min8(vv111, a110 + b001);
         }
+
         float8_t vv[8] = { vv000, vv001, vv010, vv011, vv100, vv101, vv110, vv111 };
         for (int kb = 1; kb < 8; kb += 2) {
             vv[kb] = swap1(vv[kb]);
