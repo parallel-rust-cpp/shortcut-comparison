@@ -12,8 +12,8 @@ Version | Status |Description
 `v3_simd` | 1 | Use vector registers and SIMD instructions explicitly for reducing the amount of required CPU instructions
 `v4_register_reuse` | 1 | Read vectors in blocks of 6 and do 9+9 arithmetic operations for an improved operations per memory access ratio
 `v5_more_register_reuse` | 1 | Reorder the vector representation of the input from horizontal to vertical. Read the vertical vector data in pairs and do 8+8 arithmetic operations, improving the ratio of operations per memory access even further
-`v6_prefetching` | 0 | Add software prefetching hints for improving memory throughput
-`v7_cache_reuse` | 0 | Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern for improving cache reuse
+`v6_prefetching` | 1 | Add software prefetching hints for improving memory throughput
+`v7_cache_reuse` | 1 (single core) | Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern for improving cache reuse
 
 
 ## Requirements
@@ -128,3 +128,6 @@ RAYON_NUM_THREADS=8 ./build/bin/v2_instr_level_parallelism_rust benchmark 4000 2
 
 * Linking Rust static libraries into benchmarking tools compiled from C++ incurs significant overhead in the form of excessive amounts of CPU cycles. Maybe the benchmarking code needs to also be written in Rust to make sure there is no weirdness from FFI.
 * The Rust compiler seems to be rather lenient what comes to automatically inlining cross-crate function calls. By making the hottest functions in the `tools::simd` module eligible for inlining (by adding the `#[inline]` attribute), the amount of CPU cycles during benchmarking was reduced by a factor of 10.
+* Prefetching does hardly help in Rust.
+Given the high ratio of instructions per cycles during execution of the Rust implementations, it seems that the Rust compiler is able to generate instructions that saturate all CPU execution ports rather well.
+Therefore, no ports are left for executing the prefetch instructions, and using them actually makes the running times even worse.
