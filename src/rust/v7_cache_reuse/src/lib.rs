@@ -1,6 +1,3 @@
-extern crate rayon;
-use rayon::prelude::*; // Parallel chunks iterator
-
 extern crate tools;
 use tools::simd; // Custom SIMD helpers
 
@@ -47,59 +44,59 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             row_pairs.push((ija, i, j));
         }
     }
-    // Sort using the interleaved bits as key
-    row_pairs.sort();
+    // Sort using the interleaved bits as key,
+    // no need for stable sort since there should be no duplicates keys
+    row_pairs.sort_unstable();
 
-    // TODO parallel iteration order must also by z order
-    r.par_chunks_mut(m256_length * n).enumerate().for_each(|(block_i, row_block)| {
-        for k in 0..m256_length {
-            let (_, i, j) = row_pairs[block_i * m256_length + k];
-            // Intermediate results
-            let mut tmp = [simd::m256_infty(); m256_length];
+    // TODO z-order somehow in parallel,
+    // cannot replace this with par_iter, because its for_each method takes only immutable function closures
+    // i.e., r cannot be mutated with par_iter
+    row_pairs.iter().for_each(|(_, i, j)| {
+        // Intermediate results
+        let mut tmp = [simd::m256_infty(); m256_length];
 
-            // Horizontally compute 8 minimums from each pair of vertical vectors for this row block
-            for col in 0..n {
-                let vd_i = n * i + col;
-                let vt_i = n * j + col;
+        // Horizontally compute 8 minimums from each pair of vertical vectors for this row chunk
+        for col in 0..n {
+            let vd_i = n * i + col;
+            let vt_i = n * j + col;
 
-                const PF: isize = 20;
-                simd::prefetch(vd[vd_i..].as_ptr(), PF);
-                simd::prefetch(vt[vt_i..].as_ptr(), PF);
+            const PF: isize = 20;
+            simd::prefetch(vd[vd_i..].as_ptr(), PF);
+            simd::prefetch(vt[vt_i..].as_ptr(), PF);
 
-                // Load vector pair
-                let a0 = vd[vd_i];
-                let b0 = vt[vt_i];
-                // Compute permutations
-                let a2 = simd::swap(a0, 2);
-                let a4 = simd::swap(a0, 4);
-                let a6 = simd::swap(a4, 2);
-                let b1 = simd::swap(b0, 1);
-                // Compute 8 independent, intermediate results by combining each permutation
-                tmp[0] = simd::min(tmp[0], simd::add(a0, b0));
-                tmp[1] = simd::min(tmp[1], simd::add(a0, b1));
-                tmp[2] = simd::min(tmp[2], simd::add(a2, b0));
-                tmp[3] = simd::min(tmp[3], simd::add(a2, b1));
-                tmp[4] = simd::min(tmp[4], simd::add(a4, b0));
-                tmp[5] = simd::min(tmp[5], simd::add(a4, b1));
-                tmp[6] = simd::min(tmp[6], simd::add(a6, b0));
-                tmp[7] = simd::min(tmp[7], simd::add(a6, b1));
-            }
-            // Swap all comparisons of b1 back for easier vector element extraction
-            tmp[1] = simd::swap(tmp[1], 1);
-            tmp[3] = simd::swap(tmp[3], 1);
-            tmp[5] = simd::swap(tmp[5], 1);
-            tmp[7] = simd::swap(tmp[7], 1);
+            // Load vector pair
+            let a0 = vd[vd_i];
+            let b0 = vt[vt_i];
+            // Compute permutations
+            let a2 = simd::swap(a0, 2);
+            let a4 = simd::swap(a0, 4);
+            let a6 = simd::swap(a4, 2);
+            let b1 = simd::swap(b0, 1);
+            // Compute 8 independent, intermediate results by combining each permutation
+            tmp[0] = simd::min(tmp[0], simd::add(a0, b0));
+            tmp[1] = simd::min(tmp[1], simd::add(a0, b1));
+            tmp[2] = simd::min(tmp[2], simd::add(a2, b0));
+            tmp[3] = simd::min(tmp[3], simd::add(a2, b1));
+            tmp[4] = simd::min(tmp[4], simd::add(a4, b0));
+            tmp[5] = simd::min(tmp[5], simd::add(a4, b1));
+            tmp[6] = simd::min(tmp[6], simd::add(a6, b0));
+            tmp[7] = simd::min(tmp[7], simd::add(a6, b1));
+        }
+        // Swap all comparisons of b1 back for easier vector element extraction
+        tmp[1] = simd::swap(tmp[1], 1);
+        tmp[3] = simd::swap(tmp[3], 1);
+        tmp[5] = simd::swap(tmp[5], 1);
+        tmp[7] = simd::swap(tmp[7], 1);
 
-            // Extract each element of each vector and assign to final result
-            for jb in 0..m256_length {
-                for ib in 0..m256_length {
-                    let res_i = ib + i * m256_length;
-                    let res_j = jb + j * m256_length;
-                    if res_i < n && res_j < n {
-                        let v = tmp[ib ^ jb];
-                        let vi = jb as u8;
-                        row_block[ib * n + res_j] = simd::extract(v, vi);
-                    }
+        // Extract each element of each vector and assign to result chunk
+        for jb in 0..m256_length {
+            for ib in 0..m256_length {
+                let res_i = ib + i * m256_length;
+                let res_j = jb + j * m256_length;
+                if res_i < n && res_j < n {
+                    let v = tmp[ib ^ jb];
+                    let vi = jb as u8;
+                    r[res_i * n + res_j] = simd::extract(v, vi);
                 }
             }
         }
