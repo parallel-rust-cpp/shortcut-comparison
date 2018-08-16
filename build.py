@@ -26,6 +26,8 @@ with open(os.path.join("src", "step_implementations.txt")) as f:
 
 
 def run(cmd, cwd, verbose=False):
+    if verbose:
+        print("{}".format(cmd["cmd"]))
     newenv = dict(os.environ.copy(), **cmd.get("env", {}))
     proc = subprocess.Popen(
         cmd["cmd"],
