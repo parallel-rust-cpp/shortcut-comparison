@@ -61,17 +61,28 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="Amount of iterations for each input size")
+    parser.add_argument("--no-cpp",
+            action='store_true',
+            help="Skip all C++ benchmarks")
+    parser.add_argument("--no-rust",
+            action='store_true',
+            help="Skip all Rust benchmarks")
 
     args = parser.parse_args()
     build_dir = os.path.abspath(args.build_dir)
     impl_filter = args.implementation
     input_sizes = INPUT_SIZES[args.limit_input_size_begin:args.limit_input_size_end]
+    benchmark_langs = []
+    if not args.no_cpp:
+        benchmark_langs.append("cpp")
+    if not args.no_rust:
+        benchmark_langs.append("rust")
 
     print_header("Running perf-stat for all implementations", end="\n\n")
     for step_impl in STEP_IMPLEMENTATIONS:
         if impl_filter and not step_impl.startswith(impl_filter):
             continue
-        for lang in ("cpp", "rust"):
+        for lang in benchmark_langs:
             print_header(lang + ' ' + step_impl)
             bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
             print("{:8s}{:10s}{:15s}{:15s}{:8s}".format("N", "time", "instructions", "cycles", "insn/cyc"))
