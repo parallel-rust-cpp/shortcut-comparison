@@ -8,7 +8,9 @@ void step(float* r, const float* d_, int n) {
     float8_t* vd = float8_alloc(n*na);
     float8_t* vt = float8_alloc(n*na);
 
+#if !NO_MULTI_THREAD
     #pragma omp parallel for
+#endif
     for (int j = 0; j < n; ++j) {
         for (int ka = 0; ka < na; ++ka) {
             for (int kb = 0; kb < nb; ++kb) {
@@ -19,7 +21,9 @@ void step(float* r, const float* d_, int n) {
         }
     }
 
+#if !NO_MULTI_THREAD
     #pragma omp parallel for
+#endif
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             float8_t vv = f8infty;

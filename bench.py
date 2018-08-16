@@ -19,14 +19,16 @@ def parse_perf_csv(s):
     }
 
 
-def run_perf(cmd, num_threads):
+def run_perf(cmd, num_threads=None):
     """
     Run given command string with perf-stat and return results in dict.
     """
     perf_cmd = "perf stat --detailed --detailed --field-separator ,".split(' ')
-    env = dict(os.environ.copy(),
-        OMP_NUM_THREADS=str(num_threads),
-        RAYON_NUM_THREADS=str(num_threads))
+    env = None
+    if num_threads:
+        env = dict(os.environ.copy(),
+            OMP_NUM_THREADS=str(num_threads),
+            RAYON_NUM_THREADS=str(num_threads))
     result = subprocess.run(
         perf_cmd + cmd.split(' '),
         stdout=subprocess.PIPE,
@@ -52,7 +54,6 @@ if __name__ == "__main__":
         help="m in sizes[:m], where sizes is {}".format(INPUT_SIZES))
     parser.add_argument("--threads", "-t",
         type=int,
-        default=1,
         help="Value for environment variables controlling number of threads, defaults to 1")
     parser.add_argument("--implementation", "-i",
         type=str,

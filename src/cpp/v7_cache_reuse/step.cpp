@@ -10,7 +10,9 @@ void step(float* r, const float* d_, int n) {
     float8_t* vd = float8_alloc(na*n);
     float8_t* vt = float8_alloc(na*n);
 
+#if !NO_MULTI_THREAD
     #pragma omp parallel for
+#endif
     for (int ja = 0; ja < na; ++ja) {
         for (int i = 0; i < n; ++i) {
             for (int jb = 0; jb < 8; ++jb) {
@@ -31,7 +33,9 @@ void step(float* r, const float* d_, int n) {
     }
     std::sort(rows.begin(), rows.end());
 
+#if !NO_MULTI_THREAD
     #pragma omp parallel for
+#endif
     for (auto i = 0u; i < rows.size(); ++i) {
         auto [ija, ia, ja] = rows[i];
         (void)ija;

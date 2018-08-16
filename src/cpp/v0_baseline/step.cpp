@@ -3,6 +3,9 @@
 #include "step.hpp"
 
 void step(float* r, const float* d, int n) {
+#if !NO_MULTI_THREAD
+    #pragma omp parallel for
+#endif
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             float v = std::numeric_limits<float>::infinity();
