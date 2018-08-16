@@ -1,3 +1,8 @@
+#[cfg(not(feature = "no-multi-thread"))]
+extern crate rayon;
+#[cfg(not(feature = "no-multi-thread"))]
+use rayon::prelude::*; // Parallel chunks iterator
+
 extern crate tools;
 use tools::simd; // Custom SIMD helpers
 
@@ -51,6 +56,10 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // TODO z-order somehow in parallel,
     // cannot replace this with par_iter, because its for_each method takes only immutable function closures
     // i.e., r cannot be mutated with par_iter
+    #[cfg(not(feature = "no-multi-thread"))]
+    panic!("Multithreading not implemented with v7");
+
+    #[cfg(feature = "no-multi-thread")]
     row_pairs.iter().for_each(|(_, i, j)| {
         // Intermediate results
         let mut tmp = [simd::m256_infty(); m256_length];

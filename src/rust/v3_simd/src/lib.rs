@@ -1,4 +1,6 @@
+#[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
+#[cfg(not(feature = "no-multi-thread"))]
 use rayon::prelude::*; // Parallel chunks iterator
 
 extern crate tools;
@@ -32,7 +34,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
-    // Partition the result slice into n rows, and compute result for each row in parallel
+    #[cfg(not(feature = "no-multi-thread"))]
     r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
         for j in 0..n {
             let mut tmp = simd::m256_infty();
@@ -45,6 +47,19 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             row[j] = simd::horizontal_min(tmp);
         }
     });
+    #[cfg(feature = "no-multi-thread")]
+    for i in 0..n {
+        for j in 0..n {
+            let mut tmp = simd::m256_infty();
+            for col in 0..vecs_per_row {
+                let x = vd[vecs_per_row * i + col];
+                let y = vt[vecs_per_row * j + col];
+                let z = simd::add(x, y);
+                tmp = simd::min(tmp, z);
+            }
+            r[i*n + j] = simd::horizontal_min(tmp);
+        }
+    }
 }
 
 

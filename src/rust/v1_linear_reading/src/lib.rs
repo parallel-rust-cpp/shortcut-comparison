@@ -1,5 +1,6 @@
-// OpenMP does not support Rust, but the Rayon library comes close with its parallel iterators
+#[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
+#[cfg(not(feature = "no-multi-thread"))]
 use rayon::prelude::*; // Parallel chunks iterator
 
 
@@ -13,7 +14,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
-    // Partition the result slice into n rows, and compute result for each row in parallel
+    #[cfg(not(feature = "no-multi-thread"))]
     r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
         for j in 0..n {
             let mut v = std::f32::INFINITY;
@@ -26,7 +27,21 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             row[j] = v;
         }
     });
+    #[cfg(feature = "no-multi-thread")]
+    for i in 0..n {
+        for j in 0..n {
+            let mut v = std::f32::INFINITY;
+            for k in 0..n {
+                let x = d[n*i + k];
+                let y = t[n*j + k];
+                let z = x + y;
+                v = v.min(z);
+            }
+            r[i*n + j] = v;
+        }
+    }
 }
+
 
 #[no_mangle]
 pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {

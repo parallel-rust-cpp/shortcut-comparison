@@ -1,4 +1,6 @@
+#[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
+#[cfg(not(feature = "no-multi-thread"))]
 use rayon::prelude::*; // Parallel chunks iterator
 
 extern crate tools;
@@ -33,8 +35,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
-    // Partition the result slice into row blocks, each containing an amount of rows equal to the length of a 256-bit vector
-    // Then, compute the result of each row block in parallel
+    #[cfg(not(feature = "no-multi-thread"))]
     r.par_chunks_mut(m256_length * n).enumerate().for_each(|(i, row_block)| {
         for j in 0..vecs_per_col {
             // Intermediate results
@@ -87,6 +88,51 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
         }
     });
+    #[cfg(feature = "no-multi-thread")]
+    for i in 0..vecs_per_col {
+        for j in 0..vecs_per_col {
+            let mut tmp = [simd::m256_infty(); m256_length];
+            for col in 0..n {
+                let vd_i = n * i + col;
+                let vt_i = n * j + col;
+
+                const PF: isize = 20;
+                simd::prefetch(vd[vd_i..].as_ptr(), PF);
+                simd::prefetch(vt[vt_i..].as_ptr(), PF);
+
+                let a0 = vd[vd_i];
+                let b0 = vt[vt_i];
+                let a2 = simd::swap(a0, 2);
+                let a4 = simd::swap(a0, 4);
+                let a6 = simd::swap(a4, 2);
+                let b1 = simd::swap(b0, 1);
+                tmp[0] = simd::min(tmp[0], simd::add(a0, b0));
+                tmp[1] = simd::min(tmp[1], simd::add(a0, b1));
+                tmp[2] = simd::min(tmp[2], simd::add(a2, b0));
+                tmp[3] = simd::min(tmp[3], simd::add(a2, b1));
+                tmp[4] = simd::min(tmp[4], simd::add(a4, b0));
+                tmp[5] = simd::min(tmp[5], simd::add(a4, b1));
+                tmp[6] = simd::min(tmp[6], simd::add(a6, b0));
+                tmp[7] = simd::min(tmp[7], simd::add(a6, b1));
+            }
+            tmp[1] = simd::swap(tmp[1], 1);
+            tmp[3] = simd::swap(tmp[3], 1);
+            tmp[5] = simd::swap(tmp[5], 1);
+            tmp[7] = simd::swap(tmp[7], 1);
+
+            for jb in 0..m256_length {
+                for ib in 0..m256_length {
+                    let res_i = ib + i * m256_length;
+                    let res_j = jb + j * m256_length;
+                    if res_i < n && res_j < n {
+                        let v = tmp[ib ^ jb];
+                        let vi = jb as u8;
+                        r[res_i * n + res_j] = simd::extract(v, vi);
+                    }
+                }
+            }
+        }
+    }
 }
 
 

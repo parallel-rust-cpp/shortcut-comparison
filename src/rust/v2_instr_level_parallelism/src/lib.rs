@@ -1,4 +1,6 @@
+#[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
+#[cfg(not(feature = "no-multi-thread"))]
 use rayon::prelude::*; // Parallel chunks iterator
 
 
@@ -18,7 +20,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
-    // Partition the result slice into n rows, and compute result for each row in parallel
+    #[cfg(not(feature = "no-multi-thread"))]
     r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
         for j in 0..n {
             let mut block = [std::f32::INFINITY; BLOCK_SIZE];
@@ -34,7 +36,24 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             row[j] = block.iter().fold(block[0], |acc, x| acc.min(*x));
         }
     });
+    #[cfg(feature = "no-multi-thread")]
+    for i in 0..n {
+        for j in 0..n {
+            let mut block = [std::f32::INFINITY; BLOCK_SIZE];
+            for b in 0..blocks_per_row {
+                for k in 0..BLOCK_SIZE {
+                    let x = vd[n_padded * i + b * BLOCK_SIZE + k];
+                    let y = vt[n_padded * j + b * BLOCK_SIZE + k];
+                    let z = x + y;
+                    block[k] = block[k].min(z);
+                }
+            }
+            // Fold block values into a single minimum and assign to final result
+            r[i*n + j] = block.iter().fold(block[0], |acc, x| acc.min(*x));
+        }
+    }
 }
+
 
 #[no_mangle]
 pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
