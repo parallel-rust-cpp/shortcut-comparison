@@ -10,7 +10,7 @@ import sys
 
 COMMANDS = {
     "cmake-generate": {
-        "cmd": ["cmake", "-G", "Unix Makefiles"],
+        "cmd": ["cmake", "-D", "SC_NO_MULTI_THREAD=0", "-G", "Unix Makefiles"],
     },
     "cargo-build": {
         "env": {"RUSTFLAGS": "-C target-cpu=native"},
@@ -58,11 +58,15 @@ if __name__ == "__main__":
             default="build")
     parser.add_argument("--verbose", "-v",
             action='store_true',
-            help="Show all output from build commands",
-            default=False)
+            help="Show all output from build commands")
+    parser.add_argument("--no-multi-thread",
+            action='store_true',
+            help="Explicitly exclude multithreading support from all builds, i.e. OpenMP and Rayon syntax.")
     parser.add_argument("--cmake",
+            type=str,
             help="Specify cmake binary to use instead of 'cmake'")
     parser.add_argument("--cxx",
+            type=str,
             help="Specify CXX environment variable to be used when running cmake")
 
     args = parser.parse_args()
@@ -70,6 +74,9 @@ if __name__ == "__main__":
     build_dir = os.path.abspath(args.build_dir)
     cargo_target_dir = os.path.join(build_dir, "rust_cargo")
 
+    if args.no_multi_thread:
+        cmake_cmd = COMMANDS["cmake-generate"]["cmd"]
+        cmake_cmd[2] = cmake_cmd[2][:-1] + "1"
     if args.cmake is not None:
         COMMANDS["cmake-generate"]["cmd"][0] = args.cmake
     if args.cxx is not None:

@@ -3,6 +3,8 @@ project(ShortcutBenchmark)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -march=native -g -O3 -Wall -pedantic")
+# Get value of multithreading disabling flag
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_MULTI_THREAD=${SC_NO_MULTI_THREAD}")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(BENCHMARK_SOURCES main/main.cpp main/step_reference.cpp)
