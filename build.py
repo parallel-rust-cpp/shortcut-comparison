@@ -82,6 +82,8 @@ if __name__ == "__main__":
     if args.no_multi_thread:
         cmake_cmd = COMMANDS["cmake-generate"]["cmd"]
         cmake_cmd[2] = cmake_cmd[2][:-1] + "1"
+        cargo_env = COMMANDS["cargo-build"]["env"]
+        cargo_env["RUSTFLAGS"] = cargo_env["RUSTFLAGS"] + " --cfg feature=\"no-multi-thread\""
     if args.cmake is not None:
         COMMANDS["cmake-generate"]["cmd"][0] = args.cmake
     if args.cxx is not None:
