@@ -24,13 +24,20 @@ COMMANDS = {
 with open(os.path.join("src", "step_implementations.txt")) as f:
     STEP_IMPLEMENTATIONS = f.read().splitlines()
 
+
 def run(cmd, cwd, verbose=False):
     newenv = dict(os.environ.copy(), **cmd.get("env", {}))
-    proc = subprocess.run(cmd["cmd"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd, env=newenv, encoding="utf-8")
+    proc = subprocess.Popen(
+        cmd["cmd"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        cwd=cwd,
+        env=newenv,
+    )
     for line in proc.stdout:
         if verbose:
-            print(line, end='')
-    return proc.returncode
+            print(line.decode("utf-8"), end='')
+    return proc.wait(timeout=1)
 
 class color:
     bold = '\033[1m'
