@@ -64,6 +64,9 @@ if __name__ == "__main__":
     parser.add_argument("--no-multi-thread",
             action='store_true',
             help="Explicitly exclude multithreading support from all builds, i.e. OpenMP and Rayon syntax.")
+    parser.add_argument("--makefiles-only",
+            action='store_true',
+            help="Generate makefiles and exit")
     parser.add_argument("--cmake",
             type=str,
             help="Specify cmake binary to use instead of 'cmake'")
@@ -96,6 +99,8 @@ if __name__ == "__main__":
     returncode = run(cmake_gen, build_dir, args.verbose)
     if returncode > 0:
         sys.exit(returncode)
+    if args.makefiles_only:
+        sys.exit(0)
 
     print_header("Building Rust libraries")
     cargo_build = COMMANDS["cargo-build"]
