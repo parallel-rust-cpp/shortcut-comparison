@@ -21,17 +21,8 @@ COMMANDS = {
     },
 }
 
-STEP_IMPLEMENTATIONS = [
-    "v0_baseline",
-    "v1_linear_reading",
-    "v2_instr_level_parallelism",
-    "v3_simd",
-    "v4_register_reuse",
-    "v5_more_register_reuse",
-    "v6_prefetch",
-    "v7_cache_reuse"
-]
-
+with open(os.path.join("src", "step_implementations.txt")) as f:
+    STEP_IMPLEMENTATIONS = f.read().splitlines()
 
 def run(cmd, cwd, verbose=False):
     newenv = dict(os.environ.copy(), **cmd.get("env", {}))
