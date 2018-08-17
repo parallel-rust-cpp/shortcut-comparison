@@ -91,9 +91,9 @@ if __name__ == "__main__":
         COMMANDS["cmake-generate"]["env"] = dict(cmake_env, CXX=args.cxx)
 
     if not os.path.exists(build_dir):
-        os.mkdir(build_dir)
+        os.makedirs(build_dir)
     if not os.path.exists(cargo_target_dir):
-        os.mkdir(cargo_target_dir)
+        os.makedirs(cargo_target_dir)
 
     print_header("Generating makefiles")
     cmake_gen = COMMANDS["cmake-generate"]
