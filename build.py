@@ -90,9 +90,9 @@ if __name__ == "__main__":
     build_dir = os.path.abspath(args.build_dir)
     cargo_target_dir = os.path.join(build_dir, "rust_cargo")
 
-    if args.cmake is not None:
+    if args.cmake:
         COMMANDS["cmake-generate"]["cmd"][0] = args.cmake
-    if args.cxx is not None:
+    if args.cxx:
         cmake_env = COMMANDS["cmake-generate"].get("env", {})
         COMMANDS["cmake-generate"]["env"] = dict(cmake_env, CXX=args.cxx)
 
