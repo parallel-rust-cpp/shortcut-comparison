@@ -2,9 +2,13 @@ cmake_minimum_required(VERSION 3.5)
 project(ShortcutBenchmark)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -march=native -g -O3 -Wall -pedantic")
-# Get value of multithreading disabling flag
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_MULTI_THREAD=${SC_NO_MULTI_THREAD}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -g -O3 -Wall -pedantic")
+# Check if multithreading should be disabled
+if(${SC_NO_MULTI_THREAD})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_MULTI_THREAD=1")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -DNO_MULTI_THREAD=0")
+endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(BENCHMARK_SOURCES main/main.cpp main/step_reference.cpp)
