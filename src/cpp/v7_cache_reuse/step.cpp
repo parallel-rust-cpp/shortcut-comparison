@@ -37,7 +37,8 @@ void step(float* r, const float* d_, int n) {
     #pragma omp parallel for
 #endif
     for (auto i = 0u; i < rows.size(); ++i) {
-        auto [ija, ia, ja] = rows[i];
+        int ija, ia, ja;
+        std::tie(ija, ia, ja) = rows[i];
         (void)ija;
         float8_t vv000 = f8infty;
         float8_t vv001 = f8infty;

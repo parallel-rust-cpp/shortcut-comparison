@@ -5,12 +5,11 @@
 
 // GCC only
 typedef float float8_t __attribute__ ((vector_size (8 * sizeof(float))));
-constexpr auto float8_size = sizeof(float8_t);
 
 // Allocate memory for a 256-bit vector of floats and return the pointer
 static float8_t* float8_alloc(size_t n) {
-    void *ptr = std::aligned_alloc(float8_size, n * float8_size);
-    if (ptr == nullptr) {
+    void *ptr = 0;
+    if (posix_memalign(&ptr, sizeof(float8_t), n * sizeof(float8_t))) {
         throw std::bad_alloc();
     }
     return (float8_t*)ptr;
