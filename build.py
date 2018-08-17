@@ -12,7 +12,7 @@ with open(os.path.join("src", "step_implementations.txt")) as f:
 
 COMMANDS = {
     "cmake-generate": {
-        "cmd": ["cmake", "-D", "SC_NO_MULTI_THREAD=0", "-D", "SC_EMIT_ASM=0", "-G", "Unix Makefiles"],
+        "cmd": ["cmake", "-D", "SC_NO_MULTI_THREAD=0", "G", "Unix Makefiles"],
     },
     "cargo-build": {
         "env": {"RUSTFLAGS": "-C target-cpu=native"},
@@ -33,7 +33,9 @@ def append_rust_flags(string):
 
 def run(cmd, cwd, verbose=False):
     if verbose:
-        print("{}".format(cmd["cmd"]))
+        print("Command: {}".format(cmd["cmd"]))
+        if "env" in cmd:
+            print("Env: {}".format(cmd["env"]))
     newenv = dict(os.environ.copy(), **cmd.get("env", {}))
     proc = subprocess.Popen(
         cmd["cmd"],
@@ -98,7 +100,6 @@ if __name__ == "__main__":
         enable_cmake_var(2)
         append_rust_flags("--cfg feature=\"no-multi-thread\"")
     if args.emit_asm:
-        enable_cmake_var(4)
         append_rust_flags("--emit asm")
 
 
@@ -129,3 +130,12 @@ if __name__ == "__main__":
     returncode = run(COMMANDS["make"], build_dir, args.verbose)
     if returncode > 0:
         sys.exit(returncode)
+
+    if args.emit_asm:
+        print_header("Generating assembly for C++ libraries")
+        for step_impl in STEP_IMPLEMENTATIONS:
+            asm_target = os.path.join("cpp", step_impl, "step.s")
+            make_asm = {"cmd": COMMANDS["make"]["cmd"] + [asm_target]}
+            returncode = run(make_asm, build_dir, args.verbose)
+            if returncode > 0:
+                 sys.exit(returncode)
