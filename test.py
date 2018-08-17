@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--build_dir", "-b",
         type=str,
-        default=os.path.join(os.path.curdir, "build", "bin"),
+        default=os.path.join(os.path.curdir, "build"),
         help="Path to the benchmark binaries, if not the default from build.py.")
     parser.add_argument("--threads", "-t",
         type=int,
@@ -40,7 +40,7 @@ if __name__ == "__main__":
             default=False)
 
     args = parser.parse_args()
-    build_dir = os.path.abspath(args.build_dir)
+    build_dir = os.path.abspath(os.path.join(args.build_dir, "bin"))
     impl_filter = args.implementation
 
     print_header("Running tests for all implementations", end="\n\n")
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         for step_impl in STEP_IMPLEMENTATIONS:
             if impl_filter and not step_impl.startswith(impl_filter):
                 continue
-            print_header(lang + ' ' + step_impl)
+            print_header(lang + ' ' + step_impl + ' ...', end=' ')
             test_cmd = os.path.join(build_dir, step_impl + "_" + lang)
             iterations = 10
             failed = False
