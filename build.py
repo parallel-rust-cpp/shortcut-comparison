@@ -1,16 +1,18 @@
 #!/usr/bin/python3
 """
-Awkward build script, should be in Rust.
+Build utility for building everything with one command.
 """
 import argparse
 import subprocess
 import os
 import sys
 
+with open(os.path.join("src", "step_implementations.txt")) as f:
+    STEP_IMPLEMENTATIONS = f.read().splitlines()
 
 COMMANDS = {
     "cmake-generate": {
-        "cmd": ["cmake", "-D", "SC_NO_MULTI_THREAD=0", "-G", "Unix Makefiles"],
+        "cmd": ["cmake", "-D", "SC_NO_MULTI_THREAD=0", "-D", "SC_EMIT_ASM=0", "-G", "Unix Makefiles"],
     },
     "cargo-build": {
         "env": {"RUSTFLAGS": "-C target-cpu=native"},
@@ -21,9 +23,13 @@ COMMANDS = {
     },
 }
 
-with open(os.path.join("src", "step_implementations.txt")) as f:
-    STEP_IMPLEMENTATIONS = f.read().splitlines()
+def enable_cmake_var(i):
+    cmake_cmd = COMMANDS["cmake-generate"]["cmd"]
+    cmake_cmd[i] = cmake_cmd[i][:-1] + "1"
 
+def append_rust_flags(string):
+    cargo_env = COMMANDS["cargo-build"]["env"]
+    cargo_env["RUSTFLAGS"] = cargo_env["RUSTFLAGS"] + ' ' + string
 
 def run(cmd, cwd, verbose=False):
     if verbose:
@@ -67,6 +73,9 @@ if __name__ == "__main__":
     parser.add_argument("--makefiles-only",
             action='store_true',
             help="Generate makefiles and exit")
+    parser.add_argument("--emit-asm",
+            action='store_true',
+            help="Also emit assembly during building")
     parser.add_argument("--cmake",
             type=str,
             help="Specify cmake binary to use instead of 'cmake'")
@@ -79,16 +88,19 @@ if __name__ == "__main__":
     build_dir = os.path.abspath(args.build_dir)
     cargo_target_dir = os.path.join(build_dir, "rust_cargo")
 
-    if args.no_multi_thread:
-        cmake_cmd = COMMANDS["cmake-generate"]["cmd"]
-        cmake_cmd[2] = cmake_cmd[2][:-1] + "1"
-        cargo_env = COMMANDS["cargo-build"]["env"]
-        cargo_env["RUSTFLAGS"] = cargo_env["RUSTFLAGS"] + " --cfg feature=\"no-multi-thread\""
     if args.cmake is not None:
         COMMANDS["cmake-generate"]["cmd"][0] = args.cmake
     if args.cxx is not None:
         cmake_env = COMMANDS["cmake-generate"].get("env", {})
         COMMANDS["cmake-generate"]["env"] = dict(cmake_env, CXX=args.cxx)
+
+    if args.no_multi_thread:
+        enable_cmake_var(2)
+        append_rust_flags("--cfg feature=\"no-multi-thread\"")
+    if args.emit_asm:
+        enable_cmake_var(4)
+        append_rust_flags("--emit asm")
+
 
     if not os.path.exists(build_dir):
         os.makedirs(build_dir)
