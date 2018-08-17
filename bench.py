@@ -42,8 +42,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run benchmark binaries for comparing C++ and Rust implementations of the step function")
     parser.add_argument("--build_dir", "-b",
         type=str,
-        default=os.path.join(os.path.curdir, "build", "bin"),
-        help="Path to the benchmark binaries, if not the default from build.py.")
+        default=os.path.join(os.path.curdir, "build"),
+        help="Path to build output directory from build.py, defaults to the default of build.py.")
     parser.add_argument("--limit_input_size_begin", "-n",
         type=int,
         default=0,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
             help="Skip all Rust benchmarks")
 
     args = parser.parse_args()
-    build_dir = os.path.abspath(args.build_dir)
+    build_dir = os.path.abspath(os.path.join(args.build_dir, "bin"))
     impl_filter = args.implementation
     input_sizes = INPUT_SIZES[args.limit_input_size_begin:args.limit_input_size_end]
     benchmark_langs = []
