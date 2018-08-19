@@ -2,6 +2,7 @@
 import argparse
 import os
 import subprocess
+import sys
 
 from build import print_header, STEP_IMPLEMENTATIONS
 
@@ -9,11 +10,38 @@ INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
 ITERATIONS = [1]
 
 
+class Reporter:
+    supported = ("stdout", "csv")
+
+    def __init__(self, out="stdout", filename=None):
+        assert out in self.__class__.supported, "unsupported report format: {}".format(out)
+        self.out = out
+        self.fieldnames = ["N (rows)", "time (ms)", "instructions", "cycles"]
+        self.filename = filename
+
+    def print_row(self, row):
+        if self.out == Reporter.stdout:
+            insn_per_cycle = row["instructions"]/row["cycles"]
+            print("{:8d}{:10d}{:15d}{:15d}{:8.2f}".format(*row.items(), insn_per_cycle))
+        elif self.out == Reporter.csv:
+            with open(self.filename, "w") as f:
+                writer = csv.DictWriter(f, fieldnames=self.fieldnames)
+                writer.writerow(row)
+
+    def print_header(self):
+        if self.out == Reporter.stdout:
+            print("{:8s}{:10s}{:15s}{:15s}{:8s}".format(*self.fieldnames, "insn/cycle"))
+        elif self.out == Reporter.csv:
+            with open(self.filename, "w") as f:
+                writer = csv.DictWriter(f, fieldnames=self.fieldnames)
+                writer.writeheader()
+
+
 def parse_perf_csv(s):
     def get_value(key):
         return s.partition(key)[0].splitlines()[-1].rstrip(',')
     return {
-        "time": float(s.splitlines()[1]),
+        "time (ms)": int(1e3*float(s.splitlines()[1])),
         "instructions": int(get_value("instructions")),
         "cycles": int(get_value("cycles")),
     }
@@ -58,6 +86,12 @@ if __name__ == "__main__":
     parser.add_argument("--implementation", "-i",
         type=str,
         help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")
+    parser.add_argument("--reporter_out",
+        choices=Reporter.supported,
+        help="Reporter output type")
+    parser.add_argument("--report_dir",
+        type=str,
+        help="Directory to create reports")
     parser.add_argument("--iterations", "-c",
         type=int,
         default=1,
@@ -80,6 +114,7 @@ if __name__ == "__main__":
         benchmark_langs.append("rust")
 
     print_header("Running perf-stat for all implementations", end="\n\n")
+    reporter = Reporter(args.reporter_out, args.report_filename)
     for step_impl in STEP_IMPLEMENTATIONS:
         if impl_filter and not step_impl.startswith(impl_filter):
             continue
@@ -92,7 +127,6 @@ if __name__ == "__main__":
                     bench_args = 'benchmark {} 1'.format(input_size)
                     cmd = bench_cmd + ' ' + bench_args
                     result = run_perf(cmd, args.threads)
-                    insn_per_cycle = result["instructions"]/result["cycles"]
                     print("{:4d}{:8.3f}{:15d}{:15d}{:12.3f}".format(
                         input_size,
                         result["time"],
