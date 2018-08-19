@@ -46,9 +46,9 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 let vd_i = n * i + col;
                 let vt_i = n * j + col;
 
-                const PF: isize = 20;
-                simd::prefetch(vd[vd_i..].as_ptr(), PF);
-                simd::prefetch(vt[vt_i..].as_ptr(), PF);
+                // const PF: isize = 8;
+                // simd::prefetch(vd[vd_i..].as_ptr(), PF);
+                // simd::prefetch(vt[vt_i..].as_ptr(), PF);
 
                 // Load vector pair
                 let a0 = vd[vd_i];
