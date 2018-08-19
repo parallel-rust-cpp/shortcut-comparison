@@ -9,7 +9,6 @@ import sys
 from build import print_header, STEP_IMPLEMENTATIONS
 
 INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
-ITERATIONS = [1]
 
 
 class Reporter:
@@ -24,7 +23,7 @@ class Reporter:
     def print_row(self, row):
         if self.out == "stdout":
             insn_per_cycle = row["instructions"]/row["cycles"]
-            print("{:5d}{:8d}{:15d}{:15d}{:8.2f}".format(*row.values(), insn_per_cycle))
+            print("{:8d}{:12d}{:15d}{:15d}{:15.2f}".format(*row.values(), insn_per_cycle))
         elif self.out == "csv":
             with open(self.output_path, "a") as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
@@ -32,7 +31,7 @@ class Reporter:
 
     def print_header(self, clear_file=False):
         if self.out == "stdout":
-            print("{:10s}{:10s}{:15s}{:10s}{:s}".format(*self.fieldnames, "insn/cycle"))
+            print("{:>8s}{:>12s}{:>15s}{:>15s}{:>15s}".format(*self.fieldnames, "insn/cycle"))
         elif self.out == "csv":
             with open(self.output_path, "w" if clear_file else "a") as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
@@ -127,7 +126,7 @@ if __name__ == "__main__":
             continue
         for lang in benchmark_langs:
             print_header(lang + ' ' + step_impl)
-            report_filename = None
+            report_path = None
             if args.report_dir:
                 report_name = step_impl[:2] + '.' + args.reporter_out
                 report_path = os.path.join(args.report_dir, lang, report_name)
