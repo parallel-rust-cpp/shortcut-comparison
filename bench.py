@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 import argparse
+import collections
+import csv
 import os
 import subprocess
 import sys
@@ -13,26 +15,26 @@ ITERATIONS = [1]
 class Reporter:
     supported = ("stdout", "csv")
 
-    def __init__(self, out="stdout", filename=None):
+    def __init__(self, out="stdout", output_path=None):
         assert out in self.__class__.supported, "unsupported report format: {}".format(out)
         self.out = out
-        self.fieldnames = ["N (rows)", "time (ms)", "instructions", "cycles"]
-        self.filename = filename
+        self.fieldnames = ["N (rows)", "time (us)", "instructions", "cycles"]
+        self.output_path = output_path
 
     def print_row(self, row):
-        if self.out == Reporter.stdout:
+        if self.out == "stdout":
             insn_per_cycle = row["instructions"]/row["cycles"]
-            print("{:8d}{:10d}{:15d}{:15d}{:8.2f}".format(*row.items(), insn_per_cycle))
-        elif self.out == Reporter.csv:
-            with open(self.filename, "w") as f:
+            print("{:5d}{:8d}{:15d}{:15d}{:8.2f}".format(*row.values(), insn_per_cycle))
+        elif self.out == "csv":
+            with open(self.output_path, "a") as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
                 writer.writerow(row)
 
-    def print_header(self):
-        if self.out == Reporter.stdout:
-            print("{:8s}{:10s}{:15s}{:15s}{:8s}".format(*self.fieldnames, "insn/cycle"))
-        elif self.out == Reporter.csv:
-            with open(self.filename, "w") as f:
+    def print_header(self, clear_file=False):
+        if self.out == "stdout":
+            print("{:10s}{:10s}{:15s}{:10s}{:s}".format(*self.fieldnames, "insn/cycle"))
+        elif self.out == "csv":
+            with open(self.output_path, "w" if clear_file else "a") as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
                 writer.writeheader()
 
@@ -40,11 +42,11 @@ class Reporter:
 def parse_perf_csv(s):
     def get_value(key):
         return s.partition(key)[0].splitlines()[-1].rstrip(',')
-    return {
-        "time (ms)": int(1e3*float(s.splitlines()[1])),
-        "instructions": int(get_value("instructions")),
-        "cycles": int(get_value("cycles")),
-    }
+    return collections.OrderedDict((
+        ("time (us)", int(1e6*float(s.splitlines()[1]))),
+        ("instructions", int(get_value("instructions"))),
+        ("cycles", int(get_value("cycles"))),
+    ))
 
 
 def run_perf(cmd, num_threads=None):
@@ -88,6 +90,7 @@ if __name__ == "__main__":
         help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")
     parser.add_argument("--reporter_out",
         choices=Reporter.supported,
+        default="stdout",
         help="Reporter output type")
     parser.add_argument("--report_dir",
         type=str,
@@ -113,26 +116,31 @@ if __name__ == "__main__":
     if not args.no_rust:
         benchmark_langs.append("rust")
 
+    if args.report_dir and not os.path.exists(args.report_dir):
+        os.makedirs(args.report_dir)
+        for lang in benchmark_langs:
+            os.mkdir(os.path.join(args.report_dir, lang))
+
     print_header("Running perf-stat for all implementations", end="\n\n")
-    reporter = Reporter(args.reporter_out, args.report_filename)
     for step_impl in STEP_IMPLEMENTATIONS:
         if impl_filter and not step_impl.startswith(impl_filter):
             continue
         for lang in benchmark_langs:
             print_header(lang + ' ' + step_impl)
+            report_filename = None
+            if args.report_dir:
+                report_name = step_impl[:2] + '.' + args.reporter_out
+                report_path = os.path.join(args.report_dir, lang, report_name)
+            reporter = Reporter(args.reporter_out, report_path)
+            reporter.print_header(clear_file=True)
             bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
-            print("{:8s}{:10s}{:15s}{:15s}{:8s}".format("N", "time", "instructions", "cycles", "insn/cyc"))
             for input_size in input_sizes:
                 for iter_n in range(args.iterations):
                     bench_args = 'benchmark {} 1'.format(input_size)
                     cmd = bench_cmd + ' ' + bench_args
                     result = run_perf(cmd, args.threads)
-                    print("{:4d}{:8.3f}{:15d}{:15d}{:12.3f}".format(
-                        input_size,
-                        result["time"],
-                        result["instructions"],
-                        result["cycles"],
-                        insn_per_cycle))
-
-            print()
-
+                    result["N (rows)"] = input_size
+                    result.move_to_end("N (rows)", last=False)
+                    reporter.print_row(result)
+            if args.report_dir:
+                print("Wrote {} report to {}".format(args.reporter_out, report_path))
