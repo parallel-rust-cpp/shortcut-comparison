@@ -15,7 +15,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 let x = d[n*i + k];
                 let y = d[n*k + j];
                 let z = x + y;
-                v = v.min(z);
+                v = if z < v { z } else { v };
             }
             row[j] = v;
         }
