@@ -2,15 +2,14 @@
 
 [Rust](https://www.rust-lang.org/en-US/) is a relatively young, systems programming language supporting compilation using LLVM into native code for various platforms.
 The Rust compiler enforces strict ownership rules using compile-time type checking, which provides memory safety without the overhead from running a dynamic garbage collector.
-Initially developed by engineers at Mozilla to provide more efficient tools to solve concurrency related problems in their C++ codebase for Firefox, Rust is currently maintained and owned by its community.
+Initially developed by engineers at Mozilla to provide more efficient tools to solve concurrency related problems in their C++ codebase for Firefox, Rust is currently maintained and owned by the Rust community.
 
-The [rust-lang](https://www.rust-lang.org/en-US/) main page promises a blazingly fast language, with zero-cost abstractions.
-Although the most promising features of Rust lie in strict memory safety guarantees, such as freedom of data races and thread safety, I wanted to specifically explore the performance aspect of Rust.
-Since chapter 2 on the course [Programming Parallel Computers](http://ppc.cs.aalto.fi/ch2/) is all about making C++ run as fast as possible, I decided to use it as a reference point to compare the performance of a Rust implementation, provided by this project.
+The [rust-lang](https://www.rust-lang.org/en-US/) main page promises a "blazingly fast language", with "zero-cost abstractions".
+Although the most promising features of Rust are related to strict memory safety guarantees, such as freedom of data races and thread safety, this project specifically explores the performance aspect of Rust.
 
 ## Calling Rust functions from C++
 
-In order to avoid writing two separate programs for benchmarking, one for C++ and one for Rust, we would rather write Rust functions that the C++ linker will understand.
+In order to avoid writing two separate programs for benchmarking, one for C++ and one for Rust, it would be nice if we could write Rust functions that the C++ linker would understand.
 This would allow us to compile our Rust code into static libraries, which we can then link to our benchmarking program written in C++.
 
 Consider the following C++ declaration of the `step` function:
@@ -19,7 +18,9 @@ Consider the following C++ declaration of the `step` function:
         void step(float*, const float*, int);
     }
 ```
-Implementing the declared function in Rust is rather easy, but requires some wrapper code:
+We could use the [`unsafe`](https://doc.rust-lang.org/book/second-edition/ch19-01-unsafe-rust.html#unsafe-rust) keyword and implement the declaration as a Rust function using only raw pointers.
+However, we would prefer to avoid doing this because then we would miss out on all the compile-time memory safety guarantees provided by the Rust compiler.
+Instead, we implement the actual logic in a private function called `_step`, but expose its functionality using a public, thin C wrapper:
 ```rust
     #[no_mangle]
     pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: i32) {
@@ -40,10 +41,10 @@ We declare an [`extern`](https://doc.rust-lang.org/book/second-edition/ch19-01-u
 ```rust
     pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: i32) {
 ```
-The function arguments should be rather easy to figure out when compared side to side with the C++ declaration of the `step` function.
+The function takes as arguments two pointers to single precision floating point numbers, and one 32-bit integer.
 
-The [`unsafe`](https://doc.rust-lang.org/book/second-edition/ch19-01-unsafe-rust.html#unsafe-rust) keyword is a rather powerful feature of Rust, which basically disables most (but not all) of the compile-time memory safety analysis within a block of code.
-In exchange, we are allowed to e.g. dereference raw pointers inside the scope that is declared unsafe, which would be a compile time error in "not-unsafe" sections.
+The [`unsafe`](https://doc.rust-lang.org/book/second-edition/ch19-01-unsafe-rust.html#unsafe-rust) keyword is a rather powerful feature of Rust, which basically disables most (but not all) of the compile-time memory safety checks within the scope declared unsafe.
+In exchange, we are allowed to e.g. dereference raw pointers inside the unsafe scope, which would be a compile time error in "not-unsafe" sections.
 Note that the unsafe scope does not extend to functions invoked inside the unsafe section, which in this case is only the 3 lines of `step`.
 
 Instead of declaring all our functions unsafe and keep passing around raw pointers like in C, we wrap the raw pointers into [slices](https://doc.rust-lang.org/std/primitive.slice.html).
@@ -59,11 +60,14 @@ We wrap `r_raw` also into a slice, but declare it mutable to allow writing into 
         let mut r = std::slice::from_raw_parts_mut(r_raw, (n * n) as usize);
 ```
 
-Now we have two "not-unsafe" Rust primitive types that point to the memory blocks passed down by the C++ program calling our `step` function.
+Now we have two "not-unsafe" Rust primitive types that point to the same memory blocks as the pointers passed down by the C++ program calling our `step` function.
 We can proceed by calling our Rust function [`_step`](/src/rust/v0_baseline/src/lib.rs), which provides the actual Rust implementation of the [step](http://ppc.cs.aalto.fi/ch2/) function:
 ```rust
         _step(&mut r, d, n as usize);
 ```
+
+Note that when we pass `r` into `_step`, we have to explicitly tell compiler that we are about to transfer a mutable reference `r` into the scope of `_step`.
+While this might feel redundant, the semantics of [references](https://doc.rust-lang.org/book/second-edition/ch04-02-references-and-borrowing.html) (especially mutable references) are a fundamental part of the Rust language, allowing the compiler to do static memory safety checking.
 
 ## Parallel Rust
 
