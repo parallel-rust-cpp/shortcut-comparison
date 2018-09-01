@@ -1,10 +1,11 @@
-# `f32::min`
+# Rust `f32::min`
 
-It seems that preferring an `if else` expression over the `min` function implemented for the `f32` primitive type significantly improves the running time of the resulting program.
+It seems that an `if else` expression generates more efficient code compared to the `min` function implemented for the `f32` primitive.
 
 ## `v.min(z)`
 
-Consider the most performance critical part of the v0 Rust implementation:
+Consider the Rust v0 [implementation](/src/rust/v0_baseline/src/lib.rs) of the step function.
+The most performance critical part of the function is where we update the minimum:
 
 ```rust
 let x = d[n*i + k];
@@ -43,9 +44,11 @@ Inspecting the output of the compiler reveals that there seems to be something w
        │     ↑ jb     80
 ```
 
+It would seem as the compiler has generated some rather elaborate scheme involving copying bits around in the registers, just to compute the minimum of two floating point numbers.
+
 ## `if z < v { z } else { v }`
 
-Let's replace the `min` function with a trivial `if else` expression:
+Let's replace the `min` function with a straightforward `if else` expression:
 
 ```rust
 let x = d[n*i + k];
