@@ -1,19 +1,25 @@
+# Rust and C++, a performance comparison
+
 This project compares the behaviour and performance of two solutions to a simple graph problem, called the shortcut problem.
 The reference solution, written in C++, and a description of the shortcut problem can be found [here](http://ppc.cs.aalto.fi/ch2/).
 The reference solution will be compared to a [Rust](https://github.com/rust-lang/rust) implementation, which is provided by this project.
 
+A more thorough explanation of the provided Rust implementation can be found [here](/docs/intro.md).
+
+## The `step` function
+
 The reference solution provides 8 versions of the `step`-function, each containing an incremental improvement, built on top of the previous implementation.
 
-Version | Status |Description
---- | --- | ---
-`v0_baseline` | 1 | Straightforward solution with 3 for-loops and no preprocessing
-`v1_linear_reading` | 1 | Copy input and create its transpose, enabling a linear memory access pattern
-`v2_instr_level_parallelism` | 1 | Break instruction dependency chains for improved CPU instruction throughput
-`v3_simd` | 1 | Use vector registers and SIMD instructions explicitly for reducing the amount of required CPU instructions
-`v4_register_reuse` | 1 | Read vectors in blocks of 6 and do 9+9 arithmetic operations for an improved operations per memory access ratio
-`v5_more_register_reuse` | 1 | Reorder the vector representation of the input from horizontal to vertical. Read the vertical vector data in pairs and do 8+8 arithmetic operations, improving the ratio of operations per memory access even further
-`v6_prefetching` | 1 | Add software prefetching hints for improving memory throughput
-`v7_cache_reuse` | 1 (single core) | Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern for improving cache reuse
+Version | Description
+--- | ---
+`v0_baseline` | Straightforward solution with 3 for-loops and no preprocessing
+`v1_linear_reading` | Copy input and create its transpose, enabling a linear memory access pattern
+`v2_instr_level_parallelism` | Break instruction dependency chains for improved CPU instruction throughput
+`v3_simd` | Use vector registers and SIMD instructions explicitly for reducing the amount of required CPU instructions
+`v4_register_reuse` | Read vectors in blocks of 6 and do 9+9 arithmetic operations for an improved operations per memory access ratio
+`v5_more_register_reuse` | Reorder the vector representation of the input from horizontal to vertical. Read the vertical vector data in pairs and do 8+8 arithmetic operations, improving the ratio of operations per memory access even further
+`v6_prefetching` | Add software prefetching hints for improving memory throughput
+`v7_cache_reuse` | (multi-core not implemented) Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern for improving cache reuse
 
 
 ## Requirements
@@ -131,3 +137,4 @@ RAYON_NUM_THREADS=8 ./build/bin/v2_instr_level_parallelism_rust benchmark 4000 2
 * Prefetching does hardly help in Rust.
 Given the high ratio of instructions per cycles during execution of the Rust implementations, it seems that the Rust compiler is able to generate instructions that saturate all CPU execution ports rather well.
 Therefore, no ports are left for executing the prefetch instructions, and using them actually makes the running times even worse.
+* [Prefer an `if else` expression over `f32::min`](/docs/f32_min_method.md)
