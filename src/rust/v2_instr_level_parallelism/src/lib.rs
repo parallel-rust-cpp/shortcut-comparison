@@ -6,7 +6,7 @@ use rayon::prelude::*; // Parallel chunks iterator
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
-    const BLOCK_SIZE: usize = 4;
+    const BLOCK_SIZE: usize = 2;
     let blocks_per_row = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
     let n_padded = blocks_per_row * BLOCK_SIZE;
 
@@ -20,38 +20,27 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
+    // For some row i in d, compute all results for a row in r
+    let _step_row = |(i, row): (usize, &mut [f32])| {
+        for j in 0..n {
+            let mut block = [std::f32::INFINITY; BLOCK_SIZE];
+            for b in 0..blocks_per_row {
+                for k in 0..BLOCK_SIZE {
+                    let x = vd[n_padded * i + b * BLOCK_SIZE + k];
+                    let y = vt[n_padded * j + b * BLOCK_SIZE + k];
+                    let z = x + y;
+                    block[k] = if z < block[k] { z } else { block[k] };
+                }
+            }
+            // Fold block values into a single minimum and assign to final result
+            row[j] = block.iter().fold(block[0], |acc, x| if acc < *x { acc } else { *x });
+        }
+    };
+
     #[cfg(not(feature = "no-multi-thread"))]
-    r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
-        for j in 0..n {
-            let mut block = [std::f32::INFINITY; BLOCK_SIZE];
-            for b in 0..blocks_per_row {
-                for k in 0..BLOCK_SIZE {
-                    let x = vd[n_padded * i + b * BLOCK_SIZE + k];
-                    let y = vt[n_padded * j + b * BLOCK_SIZE + k];
-                    let z = x + y;
-                    block[k] = block[k].min(z);
-                }
-            }
-            // Fold block values into a single minimum and assign to final result
-            row[j] = block.iter().fold(block[0], |acc, x| acc.min(*x));
-        }
-    });
+    r.par_chunks_mut(n).enumerate().for_each(_step_row);
     #[cfg(feature = "no-multi-thread")]
-    for i in 0..n {
-        for j in 0..n {
-            let mut block = [std::f32::INFINITY; BLOCK_SIZE];
-            for b in 0..blocks_per_row {
-                for k in 0..BLOCK_SIZE {
-                    let x = vd[n_padded * i + b * BLOCK_SIZE + k];
-                    let y = vt[n_padded * j + b * BLOCK_SIZE + k];
-                    let z = x + y;
-                    block[k] = block[k].min(z);
-                }
-            }
-            // Fold block values into a single minimum and assign to final result
-            r[i*n + j] = block.iter().fold(block[0], |acc, x| acc.min(*x));
-        }
-    }
+    r.chunks_mut(n).enumerate().for_each(_step_row);
 }
 
 

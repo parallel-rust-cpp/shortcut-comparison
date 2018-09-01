@@ -63,16 +63,10 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     row_pairs.iter().for_each(|(_, i, j)| {
         // Intermediate results
         let mut tmp = [simd::m256_infty(); m256_length];
-
         // Horizontally compute 8 minimums from each pair of vertical vectors for this row chunk
         for col in 0..n {
             let vd_i = n * i + col;
             let vt_i = n * j + col;
-
-            // const PF: isize = 8;
-            // simd::prefetch(vd[vd_i..].as_ptr(), PF);
-            // simd::prefetch(vt[vt_i..].as_ptr(), PF);
-
             // Load vector pair
             let a0 = vd[vd_i];
             let b0 = vt[vt_i];

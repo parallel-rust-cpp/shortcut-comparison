@@ -14,32 +14,24 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
-    #[cfg(not(feature = "no-multi-thread"))]
-    r.par_chunks_mut(n).enumerate().for_each(|(i, row)| {
+    // For some row i in d, compute all results for a row in r
+    let _step_row = |(i, row): (usize, &mut [f32])| {
         for j in 0..n {
             let mut v = std::f32::INFINITY;
             for k in 0..n {
                 let x = d[n*i + k];
                 let y = t[n*j + k];
                 let z = x + y;
-                v = v.min(z);
+                v = if z < v { z } else { v };
             }
             row[j] = v;
         }
-    });
+    };
+
+    #[cfg(not(feature = "no-multi-thread"))]
+    r.par_chunks_mut(n).enumerate().for_each(_step_row);
     #[cfg(feature = "no-multi-thread")]
-    for i in 0..n {
-        for j in 0..n {
-            let mut v = std::f32::INFINITY;
-            for k in 0..n {
-                let x = d[n*i + k];
-                let y = t[n*j + k];
-                let z = x + y;
-                v = v.min(z);
-            }
-            r[i*n + j] = v;
-        }
-    }
+    r.chunks_mut(n).enumerate().for_each(_step_row);
 }
 
 

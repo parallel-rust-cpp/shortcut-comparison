@@ -35,68 +35,16 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
-    #[cfg(not(feature = "no-multi-thread"))]
-    r.par_chunks_mut(m256_length * n).enumerate().for_each(|(i, row_block)| {
-        for j in 0..vecs_per_col {
-            // Intermediate results
-            let mut tmp = [simd::m256_infty(); m256_length];
-
-            // Horizontally compute 8 minimums from each pair of vertical vectors for this row block
-            for col in 0..n {
-                let vd_i = n * i + col;
-                let vt_i = n * j + col;
-
-                // const PF: isize = 8;
-                // simd::prefetch(vd[vd_i..].as_ptr(), PF);
-                // simd::prefetch(vt[vt_i..].as_ptr(), PF);
-
-                // Load vector pair
-                let a0 = vd[vd_i];
-                let b0 = vt[vt_i];
-                // Compute permutations
-                let a2 = simd::swap(a0, 2);
-                let a4 = simd::swap(a0, 4);
-                let a6 = simd::swap(a4, 2);
-                let b1 = simd::swap(b0, 1);
-                // Compute 8 independent, intermediate results by combining each permutation
-                tmp[0] = simd::min(tmp[0], simd::add(a0, b0));
-                tmp[1] = simd::min(tmp[1], simd::add(a0, b1));
-                tmp[2] = simd::min(tmp[2], simd::add(a2, b0));
-                tmp[3] = simd::min(tmp[3], simd::add(a2, b1));
-                tmp[4] = simd::min(tmp[4], simd::add(a4, b0));
-                tmp[5] = simd::min(tmp[5], simd::add(a4, b1));
-                tmp[6] = simd::min(tmp[6], simd::add(a6, b0));
-                tmp[7] = simd::min(tmp[7], simd::add(a6, b1));
-            }
-            // Swap all comparisons of b1 back for easier vector element extraction
-            tmp[1] = simd::swap(tmp[1], 1);
-            tmp[3] = simd::swap(tmp[3], 1);
-            tmp[5] = simd::swap(tmp[5], 1);
-            tmp[7] = simd::swap(tmp[7], 1);
-
-            // Extract each element of each vector and assign to final result
-            for jb in 0..m256_length {
-                for ib in 0..m256_length {
-                    let res_i = ib + i * m256_length;
-                    let res_j = jb + j * m256_length;
-                    if res_i < n && res_j < n {
-                        let v = tmp[ib ^ jb];
-                        let vi = jb as u8;
-                        row_block[ib * n + res_j] = simd::extract(v, vi);
-                    }
-                }
-            }
-        }
-    });
-    #[cfg(feature = "no-multi-thread")]
-    for i in 0..vecs_per_col {
+    // v5 with prefetching
+    let _step_row = |(i, row_block): (usize, &mut [f32])| {
         for j in 0..vecs_per_col {
             let mut tmp = [simd::m256_infty(); m256_length];
             for col in 0..n {
                 let vd_i = n * i + col;
                 let vt_i = n * j + col;
 
-                const PF: isize = 20;
+                // Insert prefetch instructions
+                const PF: isize = 8;
                 simd::prefetch(vd[vd_i..].as_ptr(), PF);
                 simd::prefetch(vt[vt_i..].as_ptr(), PF);
 
@@ -127,12 +75,17 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                     if res_i < n && res_j < n {
                         let v = tmp[ib ^ jb];
                         let vi = jb as u8;
-                        r[res_i * n + res_j] = simd::extract(v, vi);
+                        row_block[ib * n + res_j] = simd::extract(v, vi);
                     }
                 }
             }
         }
-    }
+    };
+
+    #[cfg(not(feature = "no-multi-thread"))]
+    r.par_chunks_mut(m256_length * n).enumerate().for_each(_step_row);
+    #[cfg(feature = "no-multi-thread")]
+    r.chunks_mut(m256_length * n).enumerate().for_each(_step_row);
 }
 
 
