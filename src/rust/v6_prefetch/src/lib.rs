@@ -137,8 +137,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
 
 
 #[no_mangle]
-pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: usize) {
-    let d = std::slice::from_raw_parts(d_raw, n * n);
-    let mut r = std::slice::from_raw_parts_mut(r_raw, n * n);
-    _step(&mut r, d, n);
+pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: i32) {
+    let d = std::slice::from_raw_parts(d_raw, (n * n) as usize);
+    let mut r = std::slice::from_raw_parts_mut(r_raw, (n * n) as usize);
+    _step(&mut r, d, n as usize);
 }
