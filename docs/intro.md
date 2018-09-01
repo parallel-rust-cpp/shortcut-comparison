@@ -108,9 +108,9 @@ The function takes as parameter a tuple `(i, row)`, where `i` is a slice index a
 Note that the closure will capture the input slice `d` by reference from the outer scope (`_step` function).
 All references are immutable by default in Rust, and so the only mutable reference is the slice passed in as parameter.
 
-We are now able to parallelize our Rust implementation with a similar approach as in the reference solution, which uses one thread per row of input to write results for `n` pairs of elements from `d`.
+We are now able to parallelize our Rust implementation with an approach similar to the reference solution, which uses one thread per row of input `d` to write results into `r` for `n` pairs of elements from `d`.
 
-We use the [`par_chunks_mut`](https://docs.rs/rayon/1.0.2/rayon/slice/trait.ParallelSliceMut.html#method.par_chunks_mut) function from Rayon to divide the result slice `r` into mutable slices of length `n`, and apply the closure `_step_row` in parallel on each mutable slice, i.e. rows of `r`:
+We use the [`par_chunks_mut`](https://docs.rs/rayon/1.0.2/rayon/slice/trait.ParallelSliceMut.html#method.par_chunks_mut) function from Rayon to partition the result slice `r` into mutable, non-overlapping slices of length `n`, and apply the closure `_step_row` in parallel on each mutable slice, i.e. rows of `r`:
 ```rust
     r.par_chunks_mut(n).enumerate().for_each(_step_row);
 ```
@@ -119,7 +119,7 @@ If the above approach seems confusing, consider the last line of the `_step_row`
 ```rust
     row[j] = v;
 ```
-If we were to iterate over `r` using two nested for loops of length `n` (as in the [C++ reference solution](http://ppc.cs.aalto.fi/ch2/v0/) for v0), then for all `i` and `j`, `r[n*i + j]` would refer to the same memory location as `row[j]`.
+If we were to iterate over `r` using two nested for loops of length `n` (as in the [C++ reference solution](http://ppc.cs.aalto.fi/ch2/v0/) for v0), then for all `i` and `j`, `r[n*i + j]` would refer to the same memory location as `row[j]`, for every tuple `(i, row)` passed to `_step_row`.
 
 ## References, additional reading
 
