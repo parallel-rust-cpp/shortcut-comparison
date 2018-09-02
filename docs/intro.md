@@ -9,7 +9,7 @@ This tutorial assumes the reader is an experienced C++ programmer, but is new to
 ## Calling Rust functions from C++
 
 In order to avoid writing two separate programs for benchmarking, one for C++ and one for Rust, it would be nice if we could write Rust functions that the C++ linker understands.
-This would allow us to compile our Rust code into static libraries, which we could then link to our benchmarking program, which is written in C++.
+We could then compile and link our Rust libraries to the benchmarking program, written in C++.
 
 Consider the following C++ declaration of the `step` function:
 ```cpp
@@ -68,7 +68,7 @@ We can proceed by calling our Rust function [`_step`](/src/rust/v0_baseline/src/
 
 ### Borrowing references
 
-[Borrowing](https://doc.rust-lang.org/book/second-edition/ch04-02-references-and-borrowing.html) is a fundamental part of the memory safety system in Rust.
+[Borrowing](https://doc.rust-lang.org/book/second-edition/ch04-02-references-and-borrowing.html) semantics is a fundamental part of the memory safety system in Rust.
 When we pass `r` into `_step` in the previous code block example, we have to explicitly tell compiler that we are about to transfer a mutable reference `r` into the scope of `_step` from the scope of `step`.
 In Rust this is called a mutable borrow.
 Mutable borrows cannot be aliased, which means it is not possible to have more than one mutable reference to `r` within one scope at a time.
@@ -82,14 +82,9 @@ However, Rust will restrict the amount of *overlapping* subslices we may create 
 ### OpenMP?
 
 The [reference solution](http://ppc.cs.aalto.fi/ch2/) implements parallel execution with the [OpenMP](http://ppc.cs.aalto.fi/ch2/openmp/) library.
-OpenMP does not support Rust, so it would be nice if we had some replacement library that uses a similar, work-stealing approach as OpenMP does.
-Fortunately, [Rayon](https://docs.rs/rayon/1.0.2/rayon/) provides one reasonably stable and easy to use Rust alternative to OpenMP.
+OpenMP does not support Rust, but fortunately, [Rayon](https://docs.rs/rayon/1.0.2/rayon/) provides a relatively stable and easy to use data parallelism library with a work-stealing approach similar to OpenMP.
 
 ### Parallelizing the step function
-
-When parallelizing C++ code with OpenMP, it is the [responsibility](http://ppc.cs.aalto.fi/ch2/openmp/) of the programmer to verify no [race conditions](https://stackoverflow.com/questions/26998183/how-do-i-deal-with-a-data-race-in-openmp) are introduced from the parallelization.
-By contrast, parallelizing "not-unsafe" Rust code with Rayon parallel iterators, we will have an extra [guarantee](http://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/#data-race-freedom) that the Rust compiler will generate compile-time errors from our programming mistakes, such as attempting to share a mutable reference with two threads.
-This is a nice thing to have, since making such mistakes in C++ programs usually creates subtle, hard to find runtime bugs.
 
 Lets take a look at an example.
 Consider the following closure, which computes the minimums in the Rust implementation of the [v0 step function](/src/rust/v0_baseline/src/lib.rs):
