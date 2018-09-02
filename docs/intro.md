@@ -1,16 +1,15 @@
 # Rust
 
-[Rust](https://www.rust-lang.org/en-US/) is a relatively young, systems programming language supporting compilation using LLVM into native code for various platforms.
-The Rust compiler enforces strict ownership rules using compile-time type checking, which provides memory safety without the overhead from running a dynamic garbage collector.
-Initially developed by engineers at Mozilla to provide more efficient tools to solve concurrency related problems in their C++ codebase for Firefox, Rust is currently maintained and owned by the Rust community.
-
-The [rust-lang](https://www.rust-lang.org/en-US/) main page promises a "blazingly fast language", with "zero-cost abstractions".
+[Rust](https://www.rust-lang.org/en-US/) is a relatively young, systems programming language, which uses LLVM as a compiler backend to produce native code for various platforms.
+The Rust compiler enforces strict ownership and borrowing semantics using compile-time type checking, which is designed to provide memory safe programs, without the overhead from running a dynamic garbage collector.
 Although the most promising features of Rust are related to strict memory safety guarantees, such as freedom of data races and thread safety, this project specifically explores the performance aspect of Rust.
+We will be implementing 8 Rust libraries, all containing an incrementally improved version of a function called `step`, using a [C++ implementation](http://ppc.cs.aalto.fi/ch2/) as our reference point.
+This tutorial assumes the reader is an experienced C++ programmer, but is new to the Rust language.
 
 ## Calling Rust functions from C++
 
-In order to avoid writing two separate programs for benchmarking, one for C++ and one for Rust, it would be nice if we could write Rust functions that the C++ linker would understand.
-This would allow us to compile our Rust code into static libraries, which we can then link to our benchmarking program written in C++.
+In order to avoid writing two separate programs for benchmarking, one for C++ and one for Rust, it would be nice if we could write Rust functions that the C++ linker understands.
+This would allow us to compile our Rust code into static libraries, which we could then link to our benchmarking program, which is written in C++.
 
 Consider the following C++ declaration of the `step` function:
 ```cpp
@@ -19,7 +18,7 @@ Consider the following C++ declaration of the `step` function:
     }
 ```
 We could use the [`unsafe`](https://doc.rust-lang.org/book/second-edition/ch19-01-unsafe-rust.html#unsafe-rust) keyword and implement the declaration as a Rust function using only raw pointers.
-However, we would prefer to avoid doing this because then we would miss out on all the compile-time memory safety guarantees provided by the Rust compiler.
+However, we would prefer to avoid doing this because then we would miss out on all the compile-time memory safety guarantees which the Rust compiler provides.
 Instead, we implement the actual logic in a private function called `_step`, but expose its functionality using a public, thin C wrapper:
 ```rust
     #[no_mangle]
@@ -32,7 +31,7 @@ Instead, we implement the actual logic in a private function called `_step`, but
 
 Let's break that down.
 
-We use a compile-time [attribute](https://doc.rust-lang.org/reference/attributes.html#miscellaneous-attributes) which instructs the compiler to retain the symbol name of the function (`step`), without name mangling:
+We instruct the compiler to retain the symbol name of the function (`step`) without name mangling, by using a compile-time [attribute](https://doc.rust-lang.org/reference/attributes.html#miscellaneous-attributes):
 ```rust
     #[no_mangle]
 ```
@@ -44,11 +43,12 @@ We declare an [`extern`](https://doc.rust-lang.org/book/second-edition/ch19-01-u
 The function takes as arguments two pointers to single precision floating point numbers, and one 32-bit integer.
 
 The [`unsafe`](https://doc.rust-lang.org/book/second-edition/ch19-01-unsafe-rust.html#unsafe-rust) keyword is a rather powerful feature of Rust, which basically disables most (but not all) of the compile-time memory safety checks within the scope declared unsafe.
-In exchange, we are allowed to e.g. dereference raw pointers inside the unsafe scope, which would be a compile time error in "not-unsafe" sections.
-Note that the unsafe scope does not extend to functions invoked inside the unsafe section, which in this case is only the 3 lines of `step`.
+In exchange, we are allowed to e.g. dereference raw pointers, which would be a compile-time error if done in a "not-unsafe" section.
+Note that the unsafe scope does not extend to functions invoked inside the unsafe section.
+In our example, the unsafe scope is only 3 lines in `step`.
 
 Instead of declaring all our functions unsafe and keep passing around raw pointers like in C, we wrap the raw pointers into [slices](https://doc.rust-lang.org/std/primitive.slice.html).
-Slices are Rust primitive types which provide a dynamically-sized view into a block of memory.
+Slices are Rust primitive types which provide a dynamically-sized view into a block of memory, basically a pointer with a length.
 
 Here, we construct an immutable slice of length `n * n`, starting at the address pointed by `d_raw`:
 ```rust
@@ -66,27 +66,30 @@ We can proceed by calling our Rust function [`_step`](/src/rust/v0_baseline/src/
         _step(&mut r, d, n as usize);
 ```
 
-Note that when we pass `r` into `_step`, we have to explicitly tell compiler that we are about to transfer a mutable reference `r` into the scope of `_step`.
-While this might feel redundant, the semantics of [references](https://doc.rust-lang.org/book/second-edition/ch04-02-references-and-borrowing.html) (especially mutable references) are a fundamental part of the Rust language, allowing the compiler to do static memory safety checking.
+### Borrowing references
+
+[Borrowing](https://doc.rust-lang.org/book/second-edition/ch04-02-references-and-borrowing.html) is a fundamental part of the memory safety system in Rust.
+When we pass `r` into `_step` in the previous code block example, we have to explicitly tell compiler that we are about to transfer a mutable reference `r` into the scope of `_step` from the scope of `step`.
+In Rust this is called a mutable borrow.
+Mutable borrows cannot be aliased, which means it is not possible to have more than one mutable reference to `r` within one scope at a time.
+
+Note also that the parent C++ program, which is calling our `step` function, has [ownership](https://doc.rust-lang.org/book/second-edition/ch04-01-what-is-ownership.html) of the data.
+While the Rust compiler may restrict the amount of concurrent mutable references for `r`, there is (obviously?) no way it can prevent the parent program from mutating the underlying data `r` refers to.
+However, Rust will restrict the amount of *overlapping* subslices we may create from `r`, which will be an important fact to consider when parallelizing our Rust implementation.
 
 ## Parallel Rust
-
-One of the most interesting aspects of Rust is its thread safety [guarantees](https://doc.rust-lang.org/book/second-edition/ch16-00-concurrency.html) regarding concurrent execution.
-The Rust approach to safe concurrency is in extensive compile-time ownership analysis, which according to the documentation is supposed to transform runtime concurrency bugs into compile-time errors.
-Given the inherent challenges of writing concurrent programs using imperative languages, the goal of Rust to provide fearless concurrency seems well justified.
 
 ### OpenMP?
 
 The [reference solution](http://ppc.cs.aalto.fi/ch2/) implements parallel execution with the [OpenMP](http://ppc.cs.aalto.fi/ch2/openmp/) library.
-OpenMP does not support Rust, so it would be nice if we had a parallelism library, implemented using a similar, work-stealing approach.
+OpenMP does not support Rust, so it would be nice if we had some replacement library that uses a similar, work-stealing approach as OpenMP does.
 Fortunately, [Rayon](https://docs.rs/rayon/1.0.2/rayon/) provides one reasonably stable and easy to use Rust alternative to OpenMP.
 
 ### Parallelizing the step function
 
 When parallelizing C++ code with OpenMP, it is the [responsibility](http://ppc.cs.aalto.fi/ch2/openmp/) of the programmer to verify no [race conditions](https://stackoverflow.com/questions/26998183/how-do-i-deal-with-a-data-race-in-openmp) are introduced from the parallelization.
-By contrast, parallelizing Rust code with Rayon parallel iterators, data race freedom will be [guaranteed](http://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/#data-race-freedom) by the Rayon library.
-This is possible due to the strong ownership requirements of the Rust static type system, which are enforced by the compiler.
-E.g. concurrent threads are never allowed to share ownership of a mutable reference to a block of memory.
+By contrast, parallelizing "not-unsafe" Rust code with Rayon parallel iterators, we will have an extra [guarantee](http://smallcultfollowing.com/babysteps/blog/2015/12/18/rayon-data-parallelism-in-rust/#data-race-freedom) that the Rust compiler will generate compile-time errors from our programming mistakes, such as attempting to share a mutable reference with two threads.
+This is a nice thing to have, since making such mistakes in C++ programs usually creates subtle, hard to find runtime bugs.
 
 Lets take a look at an example.
 Consider the following closure, which computes the minimums in the Rust implementation of the [v0 step function](/src/rust/v0_baseline/src/lib.rs):
@@ -105,12 +108,11 @@ Consider the following closure, which computes the minimums in the Rust implemen
     };
 ```
 The function takes as parameter a tuple `(i, row)`, where `i` is a slice index and `row` is a mutable slice into some memory block containing single precision floating point numbers.
-Note that the closure will capture the input slice `d` by reference from the outer scope (`_step` function).
-All references are immutable by default in Rust, and so the only mutable reference is the slice passed in as parameter.
+The closure will capture the input slice `d` by immutable reference from the outer scope (`_step` function).
 
 We are now able to parallelize our Rust implementation with an approach similar to the reference solution, which uses one thread per row of input `d` to write results into `r` for `n` pairs of elements from `d`.
 
-We use the [`par_chunks_mut`](https://docs.rs/rayon/1.0.2/rayon/slice/trait.ParallelSliceMut.html#method.par_chunks_mut) function from Rayon to partition the result slice `r` into mutable, non-overlapping slices of length `n`, and apply the closure `_step_row` in parallel on each mutable slice, i.e. rows of `r`:
+We use the [`par_chunks_mut`](https://docs.rs/rayon/1.0.2/rayon/slice/trait.ParallelSliceMut.html#method.par_chunks_mut) function from Rayon to partition the result slice `r` into mutable, non-overlapping slices of length `n`, and apply `_step_row` in parallel on each mutable slice, i.e. rows of `r`:
 ```rust
     r.par_chunks_mut(n).enumerate().for_each(_step_row);
 ```
