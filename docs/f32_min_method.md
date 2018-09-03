@@ -24,7 +24,7 @@ N (rows)   time (us)   instructions         cycles     insn/cycle
     1000     1963813    15111316824     6658706623           2.27
 ```
 
-Inspecting the output of the compiler reveals that there seems to be something weird going on around the `vminss` instruction:
+Inspecting the output of the compiler (using toolchain `nightly-x86_64-unknown-linux-gnu`) reveals that there seems to be something weird going on around the `vminss` instruction:
 
 ```
   6,17 │ 80:   lea    (%r11,%r10,1),%rax
