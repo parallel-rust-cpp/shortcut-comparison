@@ -18,9 +18,10 @@ Consider the following C++ declaration of the `step` function:
         void step(float*, const float*, int);
     }
 ```
-We could use the [`unsafe`](https://doc.rust-lang.org/book/second-edition/ch19-01-unsafe-rust.html#unsafe-rust) keyword and implement the declaration as a Rust function using only raw pointers.
-However, we would prefer to avoid doing this because then we would miss out on all the compile-time memory safety guarantees which the Rust compiler provides.
-Instead, we implement the actual logic in a private function called `_step`, but expose its functionality using a public, thin C wrapper:
+Now, we would like to implement this declaration in Rust so that when we compile the Rust implementation into a library and link it to our C++ application, we could call the Rust function `step` using regular C++ syntax.
+Our function must accept raw pointers, because that's how the C++ application will pass allocated memory to us.
+However, since Rust provides safer primitives, built on top of raw pointers, we would prefer to use these primitives and avoid handling raw pointers where possible.
+Therefore, we implement the algorithm logic in a private function called `_step`, but expose its functionality using a public, thin C wrapper:
 ```rust
     #[no_mangle]
     pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: i32) {
