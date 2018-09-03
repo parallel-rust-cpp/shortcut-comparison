@@ -4,7 +4,7 @@ This project compares the behaviour and performance of two solutions to a simple
 The reference solution, written in C++, and a description of the shortcut problem can be found [here](http://ppc.cs.aalto.fi/ch2/).
 The reference solution will be compared to a [Rust](https://github.com/rust-lang/rust) implementation, which is provided by this project.
 
-A more thorough explanation of the provided Rust implementation can be found [here](/docs/intro.md).
+If you are already familiar with the approach presented by the reference [C++ solution](http://ppc.cs.aalto.fi/ch2/), a more thorough explanation of the provided Rust implementation can be found [here](/docs/intro.md).
 
 ## The `step` function
 
