@@ -1,10 +1,11 @@
 # Rust
 
 [Rust](https://www.rust-lang.org/en-US/) is a relatively young, systems programming language, which uses LLVM as a compiler backend to produce native code for various platforms.
-The Rust compiler enforces strict ownership and borrowing semantics using compile-time type checking, which is designed to provide memory safe programs, without the overhead from running a dynamic garbage collector.
+Compared to C++, Rust enforces much stricter data ownership and reference borrowing semantics through static type checking and variable lifetime analysis.
+This is a fundamental design choice in the language, which according to the Rust documentation, provides memory safe programs by default, without the overhead from running a dynamic garbage collector.
 Although the most promising features of Rust are related to strict memory safety guarantees, such as freedom of data races and thread safety, this project specifically explores the performance aspect of Rust.
 We will be implementing 8 Rust libraries, all containing an incrementally improved version of a function called `step`, using a [C++ implementation](http://ppc.cs.aalto.fi/ch2/) as our reference point.
-This tutorial assumes the reader is an experienced C++ programmer, but is new to the Rust language.
+This tutorial assumes the reader feels comfortable writing C or C++, but is new to the Rust language.
 
 ## Calling Rust functions from C++
 
