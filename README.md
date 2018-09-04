@@ -46,26 +46,17 @@ rustup default nightly
 rustup update
 ```
 
-If you prefer to run compiled things in Docker containers, a pre-built image is available [here](https://hub.docker.com/r/matiaslindgren/shortcut-comparison/).
-The image has been built using the same Dockerfile found in this repo.
-In order to use the `perf` tool from within the container, you need to run the container with elevated [privileges](https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities).
-Also [relevant](https://stackoverflow.com/questions/44745987/use-perf-inside-a-docker-container-without-privileged).
-
-Download the image, create a temporary container, and run it with [CAP_SYS_ADMIN](https://linux.die.net/man/7/capabilities) privileges:
-```
-docker run --rm -it --cap-add SYS_ADMIN matiaslindgren/shortcut-comparison
-```
-
-You should now be running an interactive shell inside the container, which should have all dependencies needed to run the commands shown below.
-
 ## Building
 
-Run the provided build script, (use `--verbose` because errors are not yet caught properly):
+Build all libraries with parallel execution capabilities:
 ```
 ./build.py --verbose
 ```
+Without parallel execution capabilities:
+```
+./build.py --verbose --no-multi-thread
+```
 Assuming all dependencies have been installed, this will create an out of source build into the directory `./build`.
-
 All executables for testing each version of the `step` function are in the `build/bin` directory.
 
 ## Testing
@@ -77,9 +68,9 @@ Test all implementations against the C++ v0 baseline implementation:
 
 ## Benchmarking
 
-See:
+Run all implementations for 5 iterations, each with random input containing 4000 rows and 4000 columns, writing results in csv format into `./reports`:
 ```
-./bench.py --help
+./bench.py --reporter_out csv --report_dir reports --iterations 5 -n 8 -m 9
 ```
 
 ### Everything at once
@@ -129,6 +120,21 @@ Benchmark for 2 iterations, with random input of size 4000x4000, and using 8 thr
 ```
 RAYON_NUM_THREADS=8 ./build/bin/v2_instr_level_parallelism_rust benchmark 4000 2
 ```
+
+## Running with Docker
+
+If you prefer to run compiled stuff in Docker containers, a pre-built image is available [here](https://hub.docker.com/r/matiaslindgren/shortcut-comparison/).
+The image has been built using the same Dockerfile found in this repo.
+In order to use the `perf` tool from within the container, you need to run the container with elevated [privileges](https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities).
+Also [relevant](https://stackoverflow.com/questions/44745987/use-perf-inside-a-docker-container-without-privileged).
+
+Download the image, create a temporary container, and run it with [CAP_SYS_ADMIN](https://linux.die.net/man/7/capabilities) privileges:
+```
+docker run --rm -it --cap-add SYS_ADMIN matiaslindgren/shortcut-comparison
+```
+
+You should now be running an interactive shell inside the container, which should have all dependencies needed to run the commands shown below.
+
 
 ### Findings
 
