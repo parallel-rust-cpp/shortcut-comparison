@@ -35,11 +35,13 @@ These scripts assume the following executables are available on your path:
 * cargo
 * rustc
 
+Note that the benchmarks have been tested only on a 64-bit x86 platform.
+
 You can install and configure both the Rust compiler `rustc` and its package management tool `cargo` by using [rustup](https://github.com/rust-lang-nursery/rustup.rs).
 
-If you use the rustup script, change the default toolchain to `nightly` and continue installation.
+If you use the rustup script, choose `2) Customize installation`, change the default toolchain to `nightly`, and continue installation.
 
-If you installed the `rustup` binary:
+If you installed the `rustup` binary e.g. by using a system package manager:
 ```
 rustup install nightly
 rustup default nightly
@@ -72,54 +74,20 @@ Run all implementations for 5 iterations, each with random input containing 4000
 ```
 ./bench.py --reporter_out csv --report_dir reports --iterations 5 -n 8 -m 9
 ```
-
-### Everything at once
-
-Examples:
-
-Run all benchmarks with `perf stat`, using one thread and 5 smallest sizes for input:
+For more info:
 ```
-./bench.py -m 5
+./bench.py --help
 ```
 
-Run all benchmarks, will take considerably more time than the previous command:
-```
-./bench.py
-```
+## Findings
 
-All benchmark sizes, 4 threads and only the linear reading implementations:
-```
-./bench.py -t 4 -i v1
-```
+* Linking Rust static libraries into benchmarking tools compiled from C++ incurs significant overhead in the form of excessive amounts of CPU cycles. Maybe the benchmarking code needs to also be written in Rust to make sure there is no weirdness from FFI.
+* The Rust compiler seems to be rather lenient what comes to automatically inlining cross-crate function calls. By making the hottest functions in the `tools::simd` module eligible for inlining (by adding the `#[inline]` attribute), the amount of CPU cycles during benchmarking was reduced by a factor of 10.
+* Prefetching does hardly help in Rust.
+Given the high ratio of instructions per cycles during execution of the Rust implementations, it seems that the Rust compiler is able to generate instructions that saturate all CPU execution ports rather well.
+Therefore, no ports are left for executing the prefetch instructions, and using them actually makes the running times even worse.
+* [Prefer an `if else` expression over `f32::min`](/docs/f32_min_method.md)
 
-Inputs of size 2500 and 4000, 4 threads and only the SIMD implementations:
-```
-./bench.py -n 7 -m 9 -t 4 -i v1
-```
-
-### Single benchmark
-
-Example: Run a benchmark for the C++ step version that implements linear reading.
-Benchmark for 10 iterations, with input of size 1000x1000, consisting of random floating point numbers uniformly distributed in range `[0, 1]`:
-```
-./build/bin/v1_linear_reading_cpp benchmark 1000 10
-```
-
-Run the same benchmark using only one thread:
-```
-OMP_NUM_THREADS=1 ./build/bin/v1_linear_reading_cpp benchmark 1000 10
-```
-
-Example: Test that the baseline Rust implementation is correct:
-```
-./build/bin/v0_baseline_rust test 500 10
-```
-
-Example: Run the Rust step version that implements instruction level parallelism.
-Benchmark for 2 iterations, with random input of size 4000x4000, and using 8 threads:
-```
-RAYON_NUM_THREADS=8 ./build/bin/v2_instr_level_parallelism_rust benchmark 4000 2
-```
 
 ## Running with Docker
 
@@ -136,11 +104,3 @@ docker run --rm -it --cap-add SYS_ADMIN matiaslindgren/shortcut-comparison
 You should now be running an interactive shell inside the container, which should have all dependencies needed to run the commands shown below.
 
 
-### Findings
-
-* Linking Rust static libraries into benchmarking tools compiled from C++ incurs significant overhead in the form of excessive amounts of CPU cycles. Maybe the benchmarking code needs to also be written in Rust to make sure there is no weirdness from FFI.
-* The Rust compiler seems to be rather lenient what comes to automatically inlining cross-crate function calls. By making the hottest functions in the `tools::simd` module eligible for inlining (by adding the `#[inline]` attribute), the amount of CPU cycles during benchmarking was reduced by a factor of 10.
-* Prefetching does hardly help in Rust.
-Given the high ratio of instructions per cycles during execution of the Rust implementations, it seems that the Rust compiler is able to generate instructions that saturate all CPU execution ports rather well.
-Therefore, no ports are left for executing the prefetch instructions, and using them actually makes the running times even worse.
-* [Prefer an `if else` expression over `f32::min`](/docs/f32_min_method.md)
