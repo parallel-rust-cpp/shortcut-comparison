@@ -39,6 +39,8 @@ class Reporter:
 
 
 def parse_perf_csv(s):
+    if "You may not have permission to collect stats" in s:
+        raise Exception("The perf tool failed to run due to low privileges. Consider e.g. decreasing the integer value in /proc/sys/kernel/perf_event_paranoid")
     def get_value(key):
         return s.partition(key)[0].splitlines()[-1].rstrip(',')
     return collections.OrderedDict((
@@ -115,10 +117,14 @@ if __name__ == "__main__":
     if not args.no_rust:
         benchmark_langs.append("rust")
 
-    if args.report_dir and not os.path.exists(args.report_dir):
-        os.makedirs(args.report_dir)
-        for lang in benchmark_langs:
-            os.mkdir(os.path.join(args.report_dir, lang))
+    if args.reporter_out == "csv":
+        if args.report_dir:
+            if not os.path.exists(args.report_dir):
+                os.makedirs(args.report_dir)
+                for lang in benchmark_langs:
+                    os.mkdir(os.path.join(args.report_dir, lang))
+        else:
+            sys.exit("Reporter type 'csv' needs an output directory, please specify one with --report_dir")
 
     print_header("Running perf-stat for all implementations", end="\n\n")
     for step_impl in STEP_IMPLEMENTATIONS:
