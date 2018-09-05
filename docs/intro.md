@@ -1,11 +1,21 @@
-# Rust
+# Solving the shortcut problem with Rust
+
+This tutorial will walk through a Rust implementation of the [shortcut problem](http://ppc.cs.aalto.fi/ch2/).
+We will be implementing 8 Rust libraries, all containing an incrementally improved version of a function called `step`, using a [C++ implementation](/src/cpp/) as a reference point to compare the performance of our Rust libraries.
+All implementations will be parallelized with the help of an external Rust library called [Rayon](https://docs.rs/rayon/1.0.2/rayon/).
+This tutorial assumes the reader feels comfortable both reading and writing C or C++, but is new to the Rust language.
+
+
+## Rust
 
 [Rust](https://www.rust-lang.org/en-US/) is a relatively young, systems programming language, which uses LLVM as a compiler backend to produce native code for various platforms.
-Compared to C++, Rust enforces much stricter data ownership and reference borrowing semantics through static type checking and variable lifetime analysis.
-This is a fundamental design choice in the language, which according to the Rust documentation, provides memory safe programs by default, without the overhead from running a dynamic garbage collector.
-Although the most promising features of Rust are related to strict memory safety guarantees, such as freedom of data races and thread safety, this project specifically explores the performance aspect of Rust.
-We will be implementing 8 Rust libraries, all containing an incrementally improved version of a function called `step`, using a [C++ implementation](http://ppc.cs.aalto.fi/ch2/) as our reference point.
-This tutorial assumes the reader feels comfortable writing C or C++, but is new to the Rust language.
+Compared to C++, Rust enforces rather strict data ownership and reference borrowing semantics through static type checking and compile-time lifetime analysis of variables.
+This is a fundamental design choice, built into the language.
+According to the Rust documentation, these restrictions are meant to provide memory and thread safe programs by default, without the overhead from running a dynamic garbage collector.
+
+Since this project will focus mostly on investigating the performance aspects of Rust, many significant language features are left uncovered.
+The reader is encouraged to explore other tutorials in addition to this one in order to get a more holistic overview of the language.
+
 
 ## Calling Rust functions from C++
 
@@ -18,10 +28,10 @@ Consider the following C++ declaration of the `step` function:
         void step(float*, const float*, int);
     }
 ```
-Now, we would like to implement this declaration in Rust so that when we compile the Rust implementation into a library and link it to our C++ application, we could call the Rust function `step` using regular C++ syntax.
+We would like to implement this declaration in Rust so that when we compile the Rust implementation into a library and link it to our C++ application, we could call the Rust function `step` using regular C++ syntax.
 Our function must accept raw pointers, because that's how the C++ application will pass allocated memory to us.
 However, since Rust provides safer primitives, built on top of raw pointers, we would prefer to use these primitives and avoid handling raw pointers where possible.
-Therefore, we implement the algorithm logic in a private function called `_step`, but expose its functionality using a public, thin C wrapper:
+Therefore, we implement the algorithm logic in a private function called `_step` (explained in next chapter) and expose its functionality through a public, thin C wrapper:
 ```rust
     #[no_mangle]
     pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: i32) {
@@ -45,9 +55,7 @@ We declare an [`extern`](https://doc.rust-lang.org/book/second-edition/ch19-01-u
 The function takes as arguments two pointers to single precision floating point numbers, and one 32-bit integer.
 
 The [`unsafe`](https://doc.rust-lang.org/book/second-edition/ch19-01-unsafe-rust.html#unsafe-rust) keyword is a rather powerful feature of Rust, which basically disables most (but not all) of the compile-time memory safety checks within the scope declared unsafe.
-In exchange, we are allowed to e.g. dereference raw pointers, which would be a compile-time error if done in a "not-unsafe" section.
-Note that the unsafe scope does not extend to functions invoked inside the unsafe section.
-In our example, the unsafe scope is only 3 lines in `step`.
+In exchange, we are allowed to e.g. dereference raw pointers and call platform specific intrinsics, which would create compile-time errors if done in a regular "not-unsafe" section.
 
 Instead of declaring all our functions unsafe and keep passing around raw pointers like in C, we wrap the raw pointers into [slices](https://doc.rust-lang.org/std/primitive.slice.html).
 Slices are Rust primitive types which provide a dynamically-sized view into a block of memory, basically a pointer with a length.
@@ -63,62 +71,26 @@ We wrap `r_raw` also into a slice, but declare it mutable to allow writing into 
 ```
 
 Now we have two "not-unsafe" Rust primitive types that point to the same memory blocks as the pointers passed down by the C++ program calling our `step` function.
-We can proceed by calling our Rust function [`_step`](/src/rust/v0_baseline/src/lib.rs), which provides the actual Rust implementation of the [step](http://ppc.cs.aalto.fi/ch2/) function:
+We can proceed by calling our Rust function `_step`, which provides the actual Rust implementation of the algorithm:
 ```rust
         _step(&mut r, d, n as usize);
 ```
+The implementation of `_step` is discussed in more detail in the [next chapter](v0.md).
 
-### Borrowing references
 
-[Borrowing](https://doc.rust-lang.org/book/second-edition/ch04-02-references-and-borrowing.html) semantics is a fundamental part of the memory safety system in Rust.
-When we pass `r` into `_step` in the previous code block example, we have to explicitly tell compiler that we are about to transfer a mutable reference `r` into the scope of `_step` from the scope of `step`.
+### Borrowing and ownership
+
+The semantics of reference [borrowing](https://doc.rust-lang.org/book/second-edition/ch04-02-references-and-borrowing.html) is a fundamental part of the approach Rust takes to achieve thread safety.
+When we pass `r` into `_step` in the previous code block example, we have to explicitly tell the compiler we are about to transfer a mutable reference `r` into the scope of `_step` from the scope of `step`.
 In Rust this is called a mutable borrow.
 Mutable borrows cannot be aliased, which means it is not possible to have more than one mutable reference to `r` within one scope at a time.
+Immutable borrows, on the other hand, may be aliased.
+This means that we can have an arbitrary amount of references to `d` in any scope.
 
-Note also that the parent C++ program, which is calling our `step` function, has [ownership](https://doc.rust-lang.org/book/second-edition/ch04-01-what-is-ownership.html) of the data.
-While the Rust compiler may restrict the amount of concurrent mutable references for `r`, there is (obviously?) no way it can prevent the parent program from mutating the underlying data `r` refers to.
-However, Rust will restrict the amount of *overlapping* subslices we may create from `r`, which will be an important fact to consider when parallelizing our Rust implementation.
+Note also that the parent C++ program, which will be calling our `step` function, has [ownership](https://doc.rust-lang.org/book/second-edition/ch04-01-what-is-ownership.html) of the data.
+While the Rust compiler may restrict the amount of concurrent mutable references for `r`, there is obviously no way it can ensure the parent program will not mutate the underlying data `r` refers to.
+However, Rust is able to restrict the amount of mutable references we may create from `r`, which will be an important fact to consider when parallelizing our Rust implementation.
 
-## Parallel Rust
-
-### OpenMP?
-
-The [reference solution](http://ppc.cs.aalto.fi/ch2/) implements parallel execution with the [OpenMP](http://ppc.cs.aalto.fi/ch2/openmp/) library.
-OpenMP does not support Rust, but fortunately, [Rayon](https://docs.rs/rayon/1.0.2/rayon/) provides a relatively stable and easy to use data parallelism library with a work-stealing approach similar to OpenMP.
-
-### Parallelizing the step function
-
-Lets take a look at an example.
-Consider the following closure, which computes the minimums in the Rust implementation of the [v0 step function](/src/rust/v0_baseline/src/lib.rs):
-```rust
-    let _step_row = |(i, row): (usize, &mut [f32])| {
-        for j in 0..n {
-            let mut v = std::f32::INFINITY;
-            for k in 0..n {
-                let x = d[n*i + k];
-                let y = d[n*k + j];
-                let z = x + y;
-                v = if z < v { z } else { v };
-            }
-            row[j] = v;
-        }
-    };
-```
-The function takes as parameter a tuple `(i, row)`, where `i` is a slice index and `row` is a mutable slice into some memory block containing single precision floating point numbers.
-The closure will capture the input slice `d` by immutable reference from the outer scope (`_step` function).
-
-We are now able to parallelize our Rust implementation with an approach similar to the reference solution, which uses one thread per row of input `d` to write results into `r` for `n` pairs of elements from `d`.
-
-We use the [`par_chunks_mut`](https://docs.rs/rayon/1.0.2/rayon/slice/trait.ParallelSliceMut.html#method.par_chunks_mut) function from Rayon to partition the result slice `r` into mutable, non-overlapping slices of length `n`, and apply `_step_row` in parallel on each mutable slice, i.e. rows of `r`:
-```rust
-    r.par_chunks_mut(n).enumerate().for_each(_step_row);
-```
-
-If the above approach seems confusing, consider the last line of the `_step_row` closure:
-```rust
-    row[j] = v;
-```
-If we were to iterate over `r` using two nested for loops of length `n` (as in the [C++ reference solution](http://ppc.cs.aalto.fi/ch2/v0/) for v0), then for all `i` and `j`, `r[n*i + j]` would refer to the same memory location as `row[j]`, for every tuple `(i, row)` passed to `_step_row`.
 
 ## References, additional reading
 
