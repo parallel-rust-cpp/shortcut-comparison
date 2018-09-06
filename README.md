@@ -4,7 +4,7 @@ This project compares the behaviour and performance of two solutions to a simple
 The reference solution, written in C++, and a description of the shortcut problem can be found [here](http://ppc.cs.aalto.fi/ch2/).
 The reference solution will be compared to a [Rust](https://github.com/rust-lang/rust) implementation, which is provided by this project.
 
-If you are already familiar with the approach presented by the reference [C++ solution](http://ppc.cs.aalto.fi/ch2/), a more thorough explanation of the provided Rust implementation can be found [here](/docs/intro.md).
+If you are already familiar with the approach presented by the reference [C++ solution](http://ppc.cs.aalto.fi/ch2/), a more thorough explanation of the provided Rust implementation can be found in the [wiki](/wiki/Introduction).
 
 ## The `step` function
 
@@ -86,7 +86,7 @@ For more info:
 * Prefetching does hardly help in Rust.
 Given the high ratio of instructions per cycles during execution of the Rust implementations, it seems that the Rust compiler is able to generate instructions that saturate all CPU execution ports rather well.
 Therefore, no ports are left for executing the prefetch instructions, and using them actually makes the running times even worse.
-* [Prefer an `if else` expression over `f32::min`](/docs/f32_min_method.md)
+* [Prefer an `if else` expression over `f32::min`](/wiki/NaN_optimization)
 
 
 ## Running with Docker
