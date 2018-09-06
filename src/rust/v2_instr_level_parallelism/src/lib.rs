@@ -33,7 +33,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 }
             }
             // Fold block values into a single minimum and assign to final result
-            row[j] = block.iter().fold(block[0], |acc, x| if acc < *x { acc } else { *x });
+            row[j] = block.iter().fold(block[0], |acc, &x| if x < acc { x } else { acc });
         }
     };
 

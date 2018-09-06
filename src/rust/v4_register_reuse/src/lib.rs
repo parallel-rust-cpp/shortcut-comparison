@@ -52,7 +52,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // For some row i in d, compute all results for a row block in r, where the block contains 'blocksize' of rows.
     let _step_row = |(i, row_block): (usize, &mut [f32])| {
         for j in 0..blocks_per_col {
-            // m256 vector block containing blocksize ** 2 vectors
+            // m256 vector block of length blocksize * blocksize
             let mut tmp = [[simd::m256_infty(); blocksize]; blocksize];
             // Horizontally compute minimums into one block on this row block containing blocksize of rows
             for col in 0..vecs_per_row {
