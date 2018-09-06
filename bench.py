@@ -11,19 +11,24 @@ from build import print_header, STEP_IMPLEMENTATIONS
 INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
 
 
+def get_gflops(n, secs):
+    total_float_ops = 2 * n ** 3
+    return 1e-9 * total_float_ops / secs
+
+
 class Reporter:
     supported = ("stdout", "csv")
 
     def __init__(self, out="stdout", output_path=None):
         assert out in self.__class__.supported, "unsupported report format: {}".format(out)
         self.out = out
-        self.fieldnames = ["N (rows)", "time (us)", "instructions", "cycles"]
+        self.fieldnames = ["N (rows)", "time (us)", "instructions", "cycles", "GFLOP/s"]
         self.output_path = output_path
 
     def print_row(self, row):
         if self.out == "stdout":
             insn_per_cycle = row["instructions"]/row["cycles"]
-            print("{:8d}{:12d}{:15d}{:15d}{:15.2f}".format(*row.values(), insn_per_cycle))
+            print("{:8d}{:12d}{:15d}{:15d}{:10.2f}{:12.2f}".format(*row.values(), insn_per_cycle))
         elif self.out == "csv":
             with open(self.output_path, "a") as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
@@ -31,7 +36,7 @@ class Reporter:
 
     def print_header(self, clear_file=False):
         if self.out == "stdout":
-            print("{:>8s}{:>12s}{:>15s}{:>15s}{:>15s}".format(*self.fieldnames, "insn/cycle"))
+            print("{:>8s}{:>12s}{:>15s}{:>15s}{:>10s}{:>12s}".format(*self.fieldnames, "insn/cycle"))
         elif self.out == "csv":
             with open(self.output_path, "w" if clear_file else "a") as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
@@ -50,7 +55,7 @@ def parse_perf_csv(s):
     ))
 
 
-def run_perf(cmd, num_threads=None):
+def run_perf(cmd, input_size, num_threads=None):
     """
     Run given command string with perf-stat and return results in dict.
     """
@@ -143,9 +148,10 @@ if __name__ == "__main__":
                 for iter_n in range(args.iterations):
                     bench_args = 'benchmark {} 1'.format(input_size)
                     cmd = bench_cmd + ' ' + bench_args
-                    result = run_perf(cmd, args.threads)
+                    result = run_perf(cmd, input_size, args.threads)
                     result["N (rows)"] = input_size
                     result.move_to_end("N (rows)", last=False)
+                    result["GFLOP/s"] = get_gflops(input_size, 1e-6 * result["time (us)"])
                     reporter.print_row(result)
             if args.report_dir:
                 print("Wrote {} report to {}".format(args.reporter_out, report_path))
