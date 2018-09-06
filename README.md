@@ -4,7 +4,7 @@ This project compares the behaviour and performance of two solutions to a simple
 The reference solution, written in C++, and a description of the shortcut problem can be found [here](http://ppc.cs.aalto.fi/ch2/).
 The reference solution will be compared to a [Rust](https://github.com/rust-lang/rust) implementation, which is provided by this project.
 
-If you are already familiar with the approach presented by the reference [C++ solution](http://ppc.cs.aalto.fi/ch2/), a more thorough explanation of the provided Rust implementation can be found in the [wiki](../../wiki/Introduction).
+If you are already familiar with the approach presented by the reference C++ solution, a more thorough explanation of the provided Rust implementation can be found in the [wiki](../../wiki/Introduction).
 
 ## The `step` function
 
@@ -79,16 +79,6 @@ For more info:
 ./bench.py --help
 ```
 
-## Findings
-
-* Linking Rust static libraries into benchmarking tools compiled from C++ incurs significant overhead in the form of excessive amounts of CPU cycles. Maybe the benchmarking code needs to also be written in Rust to make sure there is no weirdness from FFI.
-* The Rust compiler seems to be rather lenient what comes to automatically inlining cross-crate function calls. By making the hottest functions in the `tools::simd` module eligible for inlining (by adding the `#[inline]` attribute), the amount of CPU cycles during benchmarking was reduced by a factor of 10.
-* Prefetching does hardly help in Rust.
-Given the high ratio of instructions per cycles during execution of the Rust implementations, it seems that the Rust compiler is able to generate instructions that saturate all CPU execution ports rather well.
-Therefore, no ports are left for executing the prefetch instructions, and using them actually makes the running times even worse.
-* [Prefer an `if else` expression over `f32::min`](../..//wiki/NaN_optimization)
-
-
 ## Running with Docker
 
 If you prefer to run compiled stuff in Docker containers, a pre-built image is available [here](https://hub.docker.com/r/matiaslindgren/shortcut-comparison/).
@@ -102,5 +92,3 @@ docker run --rm -it --cap-add SYS_ADMIN matiaslindgren/shortcut-comparison
 ```
 
 You should now be running an interactive shell inside the container, which should have all dependencies needed to run the commands shown below.
-
-
