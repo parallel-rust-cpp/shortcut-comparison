@@ -58,7 +58,7 @@ pub fn swap(v: __m256, width: i8) -> __m256 {
 
 #[inline]
 pub fn prefetch(p: *const __m256, length: isize) {
-    unsafe { intrinsics::prefetch_read_data(p.offset(length), 0) }
+    unsafe { intrinsics::prefetch_read_data(p.offset(length), 3) }
 }
 
 /// Use an index to extract a single f32 from a 256-bit vector of single precision floats

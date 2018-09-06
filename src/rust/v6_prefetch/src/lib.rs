@@ -37,6 +37,9 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
 
     // v5 with prefetching
     let _step_row = |(i, row_block): (usize, &mut [f32])| {
+        // Create raw pointers for prefetching
+        let vd_ptr = vd.as_ptr();
+        let vt_ptr = vt.as_ptr();
         for j in 0..vecs_per_col {
             let mut tmp = [simd::m256_infty(); m256_length];
             for col in 0..n {
@@ -44,9 +47,9 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 let vt_i = n * j + col;
 
                 // Insert prefetch instructions
-                const PF: isize = 8;
-                simd::prefetch(vd[vd_i..].as_ptr(), PF);
-                simd::prefetch(vt[vt_i..].as_ptr(), PF);
+                const PF: usize = 20;
+                simd::prefetch(vd_ptr, (vd_i + PF) as isize);
+                simd::prefetch(vt_ptr, (vt_i + PF) as isize);
 
                 let a0 = vd[vd_i];
                 let b0 = vt[vt_i];
