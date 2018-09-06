@@ -11,10 +11,12 @@ INPUT_SIZES = [1, 10, 100, 200]
 
 
 def run(cmd, num_threads):
-    env = {
-        "OMP_NUM_THREADS": str(num_threads),
-        "RAYON_NUM_THREADS": str(num_threads)
-    }
+    env = None
+    if num_threads:
+        env = {
+            "OMP_NUM_THREADS": str(num_threads),
+            "RAYON_NUM_THREADS": str(num_threads)
+        }
     result = subprocess.run(
         cmd.split(' '),
         stdout=subprocess.PIPE,
@@ -31,8 +33,14 @@ if __name__ == "__main__":
         help="Path to the benchmark binaries, if not the default from build.py.")
     parser.add_argument("--threads", "-t",
         type=int,
-        default=1,
         help="Value for environment variables controlling number of threads")
+    parser.add_argument("--input_size", "-n",
+        type=int,
+        help="Run tests with this value for n")
+    parser.add_argument("--iterations", "-c",
+        type=int,
+        default=10,
+        help="Run each test this many times")
     parser.add_argument("--implementation", "-i",
         type=str,
         help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")
@@ -44,6 +52,9 @@ if __name__ == "__main__":
     build_dir = os.path.abspath(os.path.join(args.build_dir, "bin"))
     impl_filter = args.implementation
 
+    if args.input_size:
+        INPUT_SIZES = [args.input_size]
+
     all_ok = True
 
     print_header("Running tests for all implementations", end="\n\n")
@@ -53,10 +64,9 @@ if __name__ == "__main__":
                 continue
             print_header(lang + ' ' + step_impl + ' ...', end=' ')
             test_cmd = os.path.join(build_dir, step_impl + "_" + lang)
-            iterations = 10
             failed = False
             for input_size in INPUT_SIZES:
-                test_args = 'test {} {}'.format(input_size, iterations)
+                test_args = 'test {} {}'.format(input_size, args.iterations)
                 cmd = test_cmd + ' ' + test_args
                 output = run(cmd, args.threads)
                 failed = "ERROR" in output
