@@ -2,6 +2,7 @@
 import argparse
 import os
 import subprocess
+import sys
 
 from build import print_header, STEP_IMPLEMENTATIONS
 
@@ -43,6 +44,8 @@ if __name__ == "__main__":
     build_dir = os.path.abspath(os.path.join(args.build_dir, "bin"))
     impl_filter = args.implementation
 
+    all_ok = True
+
     print_header("Running tests for all implementations", end="\n\n")
     for lang in ("cpp", "rust"):
         for step_impl in STEP_IMPLEMENTATIONS:
@@ -59,5 +62,11 @@ if __name__ == "__main__":
                 failed = "ERROR" in output
                 if args.verbose:
                     print(output)
+                if all_ok and failed:
+                    all_ok = False
             print("! fail" if failed else "ok")
 
+    if not all_ok:
+        print()
+        print_header("ERROR: at least one test failed")
+        sys.exit(1)
