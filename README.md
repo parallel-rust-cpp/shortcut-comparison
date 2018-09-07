@@ -12,17 +12,19 @@ The reference solution provides 8 versions of the `step`-function, each containi
 
 Version | Description
 --- | ---
-`v0_baseline` | Straightforward solution with 3 for-loops and no preprocessing
-`v1_linear_reading` | Copy input and create its transpose, enabling a linear memory access pattern
-`v2_instr_level_parallelism` | Break instruction dependency chains for improved CPU instruction throughput
-`v3_simd` | Use vector registers and SIMD instructions explicitly for reducing the amount of required CPU instructions
-`v4_register_reuse` | Read vectors in blocks of 6 and do 9+9 arithmetic operations for an improved operations per memory access ratio
-`v5_more_register_reuse` | Reorder the vector representation of the input from horizontal to vertical. Read the vertical vector data in pairs and do 8+8 arithmetic operations, improving the ratio of operations per memory access even further
-`v6_prefetching` | Add software prefetching hints for improving memory throughput
-`v7_cache_reuse` | (multi-core not implemented) Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern for improving cache reuse
+`v0_baseline` | Straightforward solution without preprocessing
+`v1_linear_reading` | Create a copy of the input and store its transpose in row-major order, enabling a linear memory access pattern
+`v2_instr_level_parallelism` | Break instruction dependency chains, increasing the instruction throughput
+`v3_simd` | Use vector registers and SIMD instructions explicitly, reducing the amount of required instructions
+`v4_register_reuse` | Read vectors in blocks of 6 and do 9+9 arithmetic operations for each block, improving the ratio of operations per memory access
+`v5_more_register_reuse` | Reorder the representation of input by packing SIMD vectors vertically, instead of horizontally. Read the vertically ordered data in vector pairs and do 8+8 arithmetic operations, further improving the ratio of operations per memory access
+`v6_prefetching` | Add prefetch hint instructions, saturating vacant CPU execution ports
+`v7_cache_reuse` | (multi-core not implemented) Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern, improving data locality from cache reuse
 
 
 ## Requirements
+
+This project has been tested only on a 64-bit x86 platform.
 
 This project provides 3 scripts for building, benchmarking and testing the project.
 These scripts assume the following executables are available on your path:
@@ -34,8 +36,6 @@ These scripts assume the following executables are available on your path:
 * perf
 * cargo
 * rustc
-
-Note that the benchmarks have been tested only on a 64-bit x86 platform.
 
 You can install and configure both the Rust compiler `rustc` and its package management tool `cargo` by using [rustup](https://github.com/rust-lang-nursery/rustup.rs).
 
@@ -54,12 +54,13 @@ Build all libraries with parallel execution capabilities:
 ```
 ./build.py --verbose
 ```
-Without parallel execution capabilities:
+Assuming all dependencies have been installed, this will create an out of source build into the directory `./build`.
+All executables for testing each version of the `step` function are in the `build/bin` directory.
+
+To build purely serial versions of all libraries:
 ```
 ./build.py --verbose --no-multi-thread
 ```
-Assuming all dependencies have been installed, this will create an out of source build into the directory `./build`.
-All executables for testing each version of the `step` function are in the `build/bin` directory.
 
 ## Testing
 
@@ -84,11 +85,11 @@ For more info:
 If you prefer to run compiled stuff in Docker containers, a pre-built image is available [here](https://hub.docker.com/r/matiaslindgren/shortcut-comparison/).
 The image has been built using the same Dockerfile found in this repo.
 In order to use the `perf` tool from within the container, you need to run the container with elevated [privileges](https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities).
-Also [relevant](https://stackoverflow.com/questions/44745987/use-perf-inside-a-docker-container-without-privileged).
+[This](https://stackoverflow.com/questions/44745987/use-perf-inside-a-docker-container-without-privileged) post might also be of interest.
 
 Download the image, create a temporary container, and run it with [CAP_SYS_ADMIN](https://linux.die.net/man/7/capabilities) privileges:
 ```
 docker run --rm -it --cap-add SYS_ADMIN matiaslindgren/shortcut-comparison
 ```
 
-You should now be running an interactive shell inside the container, which should have all dependencies needed to run the commands shown below.
+You should now be running an interactive shell inside the container, which should have all dependencies needed to run the commands shown above.
