@@ -14,11 +14,11 @@ Version | Description
 --- | ---
 `v0_baseline` | Straightforward solution without preprocessing
 `v1_linear_reading` | Create a copy of the input and store its transpose in row-major order, enabling a linear memory access pattern
-`v2_instr_level_parallelism` | Break instruction dependency chains, increasing the instruction throughput
+`v2_instr_level_parallelism` | Break instruction dependency chains, increasing instruction throughput
 `v3_simd` | Use vector registers and SIMD instructions explicitly, reducing the amount of required instructions
 `v4_register_reuse` | Read vectors in blocks of 6 and do 9+9 arithmetic operations for each block, improving the ratio of operations per memory access
-`v5_more_register_reuse` | Reorder the representation of input by packing SIMD vectors vertically, instead of horizontally. Read the vertically ordered data in vector pairs and do 8+8 arithmetic operations, further improving the ratio of operations per memory access
-`v6_prefetching` | Add prefetch hint instructions, saturating vacant CPU execution ports
+`v5_more_register_reuse` | Reorder input structure by packing the data into SIMD vectors vertically, instead of horizontally. Read the vertically ordered data as vector pairs and do 8+8 arithmetic operations for each pair, further improving the ratio of operations per memory access
+`v6_prefetching` | Add prefetch hint instructions to take advantage of vacant CPU execution ports
 `v7_cache_reuse` | (multi-core not implemented) Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern, improving data locality from cache reuse
 
 
