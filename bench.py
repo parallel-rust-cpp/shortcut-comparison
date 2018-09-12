@@ -92,8 +92,9 @@ if __name__ == "__main__":
         type=int,
         help="Value for environment variables controlling number of threads, defaults to 1")
     parser.add_argument("--implementation", "-i",
+        action='append',
         type=str,
-        help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")
+        help="Specify implementations to be run, e.g '-i v0' runs only v0_baseline. Can be specified multiple times.")
     parser.add_argument("--reporter_out",
         choices=Reporter.supported,
         default="stdout",
@@ -114,7 +115,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     build_dir = os.path.abspath(os.path.join(args.build_dir, "bin"))
-    impl_filter = args.implementation
+    impl_filter = tuple(set(args.implementation)) if args.implementation else ()
     input_sizes = INPUT_SIZES[args.limit_input_size_begin:args.limit_input_size_end]
     benchmark_langs = []
     if not args.no_cpp:
@@ -133,7 +134,7 @@ if __name__ == "__main__":
 
     print_header("Running perf-stat for all implementations", end="\n\n")
     for step_impl in STEP_IMPLEMENTATIONS:
-        if impl_filter and not step_impl.startswith(impl_filter):
+        if impl_filter and not any(step_impl.startswith(prefix) for prefix in impl_filter):
             continue
         for lang in benchmark_langs:
             print_header(lang + ' ' + step_impl)
