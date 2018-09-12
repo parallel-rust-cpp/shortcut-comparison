@@ -6,9 +6,11 @@ import os
 import subprocess
 import sys
 
-from build import print_header, STEP_IMPLEMENTATIONS
+from build import print_header, print_error, STEP_IMPLEMENTATIONS
 
 INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
+
+class PerfToolException(BaseException): pass
 
 
 def get_gflops(n, secs):
@@ -45,7 +47,7 @@ class Reporter:
 
 def parse_perf_csv(s):
     if "You may not have permission to collect stats" in s:
-        raise Exception("The perf tool failed to run due to low privileges. Consider e.g. decreasing the integer value in /proc/sys/kernel/perf_event_paranoid")
+        raise PerfToolException
     def get_value(key):
         return s.partition(key)[0].splitlines()[-1].rstrip(',')
     return collections.OrderedDict((
@@ -73,6 +75,32 @@ def run_perf(cmd, input_size, num_threads=None):
     )
     return parse_perf_csv(result.stdout.decode("utf-8"))
 
+
+def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=None, reporter_out=None):
+    print_header("Running perf-stat for all implementations", end="\n\n")
+    for step_impl in STEP_IMPLEMENTATIONS:
+        if impl_filter and not any(step_impl.startswith(prefix) for prefix in impl_filter):
+            continue
+        for lang in benchmark_langs:
+            print_header(lang + ' ' + step_impl)
+            report_path = None
+            if report_dir:
+                report_name = step_impl[:2] + '.' + reporter_out
+                report_path = os.path.join(report_dir, lang, report_name)
+            reporter = Reporter(reporter_out, report_path)
+            reporter.print_header(clear_file=True)
+            bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
+            for input_size in input_sizes:
+                for iter_n in range(iterations):
+                    bench_args = 'benchmark {} 1'.format(input_size)
+                    cmd = bench_cmd + ' ' + bench_args
+                    result = run_perf(cmd, input_size, threads)
+                    result["N (rows)"] = input_size
+                    result.move_to_end("N (rows)", last=False)
+                    result["GFLOP/s"] = get_gflops(input_size, 1e-6 * result["time (us)"])
+                    reporter.print_row(result)
+            if report_dir:
+                print("Wrote {} report to {}".format(reporter_out, report_path))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run benchmark binaries for comparing C++ and Rust implementations of the step function")
@@ -130,29 +158,12 @@ if __name__ == "__main__":
                 for lang in benchmark_langs:
                     os.mkdir(os.path.join(args.report_dir, lang))
         else:
-            sys.exit("Reporter type 'csv' needs an output directory, please specify one with --report_dir")
+            print_error("Reporter type 'csv' needs an output directory, please specify one with --report_dir")
+            sys.exit(1)
 
-    print_header("Running perf-stat for all implementations", end="\n\n")
-    for step_impl in STEP_IMPLEMENTATIONS:
-        if impl_filter and not any(step_impl.startswith(prefix) for prefix in impl_filter):
-            continue
-        for lang in benchmark_langs:
-            print_header(lang + ' ' + step_impl)
-            report_path = None
-            if args.report_dir:
-                report_name = step_impl[:2] + '.' + args.reporter_out
-                report_path = os.path.join(args.report_dir, lang, report_name)
-            reporter = Reporter(args.reporter_out, report_path)
-            reporter.print_header(clear_file=True)
-            bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
-            for input_size in input_sizes:
-                for iter_n in range(args.iterations):
-                    bench_args = 'benchmark {} 1'.format(input_size)
-                    cmd = bench_cmd + ' ' + bench_args
-                    result = run_perf(cmd, input_size, args.threads)
-                    result["N (rows)"] = input_size
-                    result.move_to_end("N (rows)", last=False)
-                    result["GFLOP/s"] = get_gflops(input_size, 1e-6 * result["time (us)"])
-                    reporter.print_row(result)
-            if args.report_dir:
-                print("Wrote {} report to {}".format(args.reporter_out, report_path))
+    try:
+        do_benchmark(build_dir, args.iterations, benchmark_langs, args.threads, args.report_dir, args.reporter_out)
+    except PerfToolException:
+        print()
+        print_error("Failed to run perf due to low privileges. Consider e.g. decreasing the integer value in /proc/sys/kernel/perf_event_paranoid")
+        sys.exit(1)

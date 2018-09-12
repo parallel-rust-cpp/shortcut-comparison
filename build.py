@@ -51,10 +51,14 @@ def run(cmd, cwd, verbose=False):
 
 class color:
     bold = '\033[1m'
+    red = '\033[31m'
     endc = '\033[0m'
 
 def print_header(s, **kwargs):
     print(color.bold + s + color.endc, **kwargs)
+
+def print_error(s, **kwargs):
+    print(color.red + s + color.endc, **kwargs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
