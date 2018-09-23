@@ -43,17 +43,6 @@ echo_header "Running all benchmarks"
            --threads $THREADS \
            --iterations 5
 
-TOPOLOGY_FILE="$REPORT_DIR/cputopology.xml"
-echo_header "Analyze CPU topology"
-lstopo --no-io \
-       --physical \
-       --output-format console
-lstopo --no-io \
-       --physical \
-       --force \
-       $TOPOLOGY_FILE
-echo "Wrote topology to $TOPOLOGY_FILE"
-
 echo_header "==== SINGLE THREAD BENCHMARK COMPLETE ===="
 
 rm -rf $BUILD_DIR
@@ -83,3 +72,14 @@ echo_header "Running all benchmarks"
            --iterations 5
 
 echo_header "==== MULTI THREAD BENCHMARK COMPLETE ===="
+
+TOPOLOGY_FILE="$REPORT_DIR/cputopology.xml"
+echo_header "Analyze CPU topology"
+lstopo --no-io \
+       --physical \
+       --output-format console
+lstopo --no-io \
+       --physical \
+       --force \
+       $TOPOLOGY_FILE
+echo "Wrote topology to $TOPOLOGY_FILE"
