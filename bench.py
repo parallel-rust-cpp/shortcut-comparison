@@ -10,13 +10,8 @@ from build import print_header, print_error, STEP_IMPLEMENTATIONS
 
 INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
 
-# Use hwloc to pin 4 threads to 4 physical processing units on the first CPU
-CPU_BIND_CMD = "hwloc-bind --cpubind --physical package:0.pu:0-3 --"
-# This assumes the physical processing units are indexed 0, 1, 2, and 3.
-# To verify this is the case on your platform, run the following in a shell:
-# lstopo --physical --no-io --output-format ascii
-# The PU indexes for each core in package P#0 should be numbered P#0, P#1, P#2, and P#3.
-# If not, change the above command accordingly.
+# Use hwloc to bind 4 threads to 4 hardware threads to 4 physical cores on the first CPU
+CPU_BIND_CMD = "hwloc-bind --cpubind package:0.core:0-3.pu:0 --"
 
 class PerfToolException(BaseException): pass
 
