@@ -10,6 +10,12 @@ from build import print_header, print_error, STEP_IMPLEMENTATIONS
 
 INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
 
+# Use hwloc to pin 4 threads to 4 physical cores on the first CPU
+# If the assumed topology is different on your platform, run lstopo in a shell and make changes according to the output
+# lstopo --no-io --no-legend --output-format console
+hwloc_args = ' '.join("package:0.core:{}.pu:0".format(core_num) for core_num in (0, 1, 2, 3))
+CPU_BIND_CMD = "hwloc-bind {} --".format(hwloc_args)
+
 class PerfToolException(BaseException): pass
 
 
@@ -91,9 +97,9 @@ def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=Non
             reporter.print_header(clear_file=True)
             bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
             for input_size in input_sizes:
+                bench_args = 'benchmark {} 1'.format(input_size)
+                cmd = ' '.join((CPU_BIND_CMD, bench_cmd, bench_args))
                 for iter_n in range(iterations):
-                    bench_args = 'benchmark {} 1'.format(input_size)
-                    cmd = bench_cmd + ' ' + bench_args
                     result = run_perf(cmd, input_size, threads)
                     result["N (rows)"] = input_size
                     result.move_to_end("N (rows)", last=False)
@@ -101,6 +107,7 @@ def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=Non
                     reporter.print_row(result)
             if report_dir:
                 print("Wrote {} report to {}".format(reporter_out, report_path))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run benchmark binaries for comparing C++ and Rust implementations of the step function")
