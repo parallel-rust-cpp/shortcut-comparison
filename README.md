@@ -21,6 +21,30 @@ Version | Description
 `v6_prefetching` | Add prefetch hint instructions to take advantage of vacant CPU execution ports
 `v7_cache_reuse` | (multi-core not implemented) Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern, improving data locality from cache reuse
 
+## Benchmark results
+
+### Settings
+
+* Input consists of single precision floating point numbers drawn uniformly at random from [0, 1.0).
+* Input size 4000 x 4000 = 16M elements.
+* Each benchmark is run with 4 software threads and the benchmark process is bound with `hwloc-bind` to 4 hardware threads on 4 physical cores (PUs 0-3 on cores 0-3, see image below)
+* 5 iterations for each `step` version for both languages, i.e. 5 x 7 x 2 runs in total.
+* The result metrics are reduced to the arithmetic mean, e.g. mean GFLOP/s of 5 independent runs.
+
+### CPU: Intel Xeon E3-1230 v5 @ 3.4 GHz
+
+![Xeon E3-1230 topology](reports/Xeon_E3-1230_v5/cpu.png "Xeon E3-1230 v5")
+
+### Single thread
+
+![Single thread benchmark results](reports/Xeon_E3-1230_v5/single_core/plot.png "Single threaded performance")
+
+### Four threads
+
+![Multi thread benchmark results](reports/Xeon_E3-1230_v5/multi_core/plot.png "Multi threaded performance")
+
+Raw CSV data from the benchmark is available [here](reports/Xeon_E3-1230_v5).
+
 
 ## Requirements
 
@@ -29,13 +53,15 @@ This project has been tested only on a 64-bit x86 platform.
 This project provides 3 scripts for building, benchmarking and testing the project.
 These scripts assume the following executables are available on your path:
 
-* python3
-* g++
-* make
-* cmake
-* perf
-* cargo
-* rustc
+* `python3`
+* `g++`
+* `make`
+* `cmake`
+* `perf`
+* `cargo`
+* `rustc`
+* `lstopo`
+* `hwloc-bind`
 
 You can install and configure both the Rust compiler `rustc` and its package management tool `cargo` by using [rustup](https://github.com/rust-lang-nursery/rustup.rs).
 
@@ -48,7 +74,12 @@ rustup default nightly
 rustup update
 ```
 
-## Building
+## Running
+
+If all prerequisites have been installed, you can build, test and benchmark everything with [`do_csv_bench.bash`](do_csv_bench.bash).
+See the script for details.
+
+### Building
 
 Build all libraries with parallel execution capabilities:
 ```
@@ -62,14 +93,14 @@ To build purely serial versions of all libraries:
 ./build.py --verbose --no-multi-thread
 ```
 
-## Testing
+### Testing
 
 Test all implementations against the C++ v0 baseline implementation:
 ```
 ./test.py
 ```
 
-## Benchmarking
+### Benchmarking
 
 Run all implementations for 5 iterations, each with random input containing 4000 rows and 4000 columns, writing results in csv format into `./reports`:
 ```
