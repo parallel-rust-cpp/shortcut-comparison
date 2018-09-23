@@ -125,6 +125,9 @@ if __name__ == "__main__":
         type=int,
         default=len(INPUT_SIZES),
         help="m in sizes[:m], where sizes is {}".format(INPUT_SIZES))
+    parser.add_argument("--input_size",
+        type=int,
+        help="Override input size with a single value. Takes precedence over --limit_input_size{begin,end}.")
     parser.add_argument("--threads", "-t",
         type=int,
         help="Value for environment variables controlling number of threads, defaults to 1")
@@ -156,7 +159,11 @@ if __name__ == "__main__":
         print_error("Build directory {}, that should contain the test executables, does not exist".format(build_dir))
         sys.exit(1)
     impl_filter = tuple(set(args.implementation)) if args.implementation else ()
-    input_sizes = INPUT_SIZES[args.limit_input_size_begin:args.limit_input_size_end]
+    if args.input_size:
+        input_sizes = [args.input_size]
+    else:
+        input_sizes = INPUT_SIZES[args.limit_input_size_begin:args.limit_input_size_end]
+
     benchmark_langs = []
     if not args.no_cpp:
         benchmark_langs.append("cpp")

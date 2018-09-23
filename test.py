@@ -57,7 +57,6 @@ if __name__ == "__main__":
 
     all_ok = True
 
-    print_header("Running tests for all implementations", end="\n\n")
     for lang in ("cpp", "rust"):
         for step_impl in STEP_IMPLEMENTATIONS:
             if impl_filter and not step_impl.startswith(impl_filter):

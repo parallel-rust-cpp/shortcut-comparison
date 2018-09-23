@@ -21,9 +21,6 @@ COMMANDS = {
     "make": {
         "cmd": ["make", "--jobs", "8"],
     },
-    "get-topology": {
-        "cmd": ["lstopo", "--no-io", "--physical", "--output-format", "xml"],
-    }
 }
 
 def enable_cmake_var(i):
@@ -85,9 +82,6 @@ if __name__ == "__main__":
     parser.add_argument("--emit-asm",
             action='store_true',
             help="Also emit assembly during building")
-    parser.add_argument("--cpu-topology",
-            action='store_true',
-            help="Generate lstopo XML file of CPU topology")
     parser.add_argument("--cmake",
             type=str,
             help="Specify cmake binary to use instead of 'cmake'")
@@ -111,16 +105,6 @@ if __name__ == "__main__":
         append_rust_flags("--cfg feature=\"no-multi-thread\"")
     if args.emit_asm:
         append_rust_flags("--emit asm")
-    if args.cpu_topology:
-        print_header("Analyzing CPU")
-        topology_file = os.path.join(build_dir, "cputopology.xml")
-        if os.path.exists(topology_file):
-            print_error("CPU topology file {} already exists".format(topology_file))
-            sys.exit(1)
-        COMMANDS["get-topology"]["cmd"] += [topology_file]
-        returncode = run(COMMANDS["get-topology"], verbose=args.verbose)
-        if returncode > 0:
-            sys.exit(returncode)
 
     if not os.path.exists(build_dir):
         os.makedirs(build_dir)
