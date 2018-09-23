@@ -143,6 +143,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     build_dir = os.path.abspath(os.path.join(args.build_dir, "bin"))
+    if not os.path.exists(build_dir):
+        print_error("Build directory {}, that should contain the test executables, does not exist".format(build_dir))
+        sys.exit(1)
     impl_filter = tuple(set(args.implementation)) if args.implementation else ()
     input_sizes = INPUT_SIZES[args.limit_input_size_begin:args.limit_input_size_end]
     benchmark_langs = []
