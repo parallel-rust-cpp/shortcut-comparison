@@ -27,7 +27,7 @@ Version | Description
 
 * Input consists of single precision floating point numbers drawn uniformly at random from [0, 1.0).
 * Input size 4000 x 4000 = 16M elements.
-* Each benchmark is run with 4 software threads and the benchmark process is bound with `hwloc-bind` to 4 hardware threads on 4 physical cores (PUs 0-3 on cores 0-3, see image below)
+* Each benchmark is run with 4 software threads and the benchmark process is bound with `hwloc-bind` to 4 hardware threads on 4 physical cores.
 * 5 iterations for each `step` version for both languages, i.e. 5 x 7 x 2 runs in total.
 * The result metrics are reduced to the arithmetic mean, e.g. mean GFLOP/s of 5 independent runs.
 
