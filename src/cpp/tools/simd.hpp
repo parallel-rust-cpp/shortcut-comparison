@@ -3,8 +3,13 @@
 #include <cstdlib>
 #include <x86intrin.h>
 
-// GCC only
+#ifdef __GNUC__
 typedef float float8_t __attribute__ ((vector_size (8 * sizeof(float))));
+#elif __clang__
+typedef float float8_t __attribute__ ((ext_vector_type(8)));
+#else
+#error "SIMD helpers currently typedef'd only for Clang and GNU GCC"
+#endif
 
 // Allocate memory for a 256-bit vector of floats and return the pointer
 static float8_t* float8_alloc(size_t n) {
@@ -32,7 +37,11 @@ inline float hmin8(const float8_t& v) {
 
 // Return a vector of the minimum elements for each pair of elements of two float8 vectors
 inline float8_t min8(const float8_t& v, const float8_t& w) {
+#ifdef __clang__
+    return _mm256_min_ps(v, w);
+#else
     return v < w ? v : w;
+#endif
 }
 
 inline float8_t swap4(float8_t x) {
