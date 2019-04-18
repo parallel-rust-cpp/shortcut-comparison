@@ -78,6 +78,7 @@ def plot_reports(report_path, metric):
     ax.set_xlabel('Version')
     ax.set_xticks(index + bar_width / 2)
     ax.set_xticklabels(implementation_labels)
+    ax.set_title("Throughput of floating point instructions (more is better)")
     ax.legend()
 
     fig.tight_layout()
