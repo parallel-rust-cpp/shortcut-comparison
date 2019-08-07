@@ -20,7 +20,7 @@ function echo_header {
 
 function check_dependencies {
     local all_ok=1
-    local executables='python3 g++ make cmake perf cargo rustc lstopo hwloc-bind'
+    local executables='python3 g++ make cmake perf cargo rustc'
     for dep in $executables; do
         local where=$(type -p $dep)
         if [ -z $where ]; then
@@ -94,13 +94,13 @@ echo_header "Running all benchmarks"
 
 echo_header "==== MULTI THREAD BENCHMARK COMPLETE ===="
 
-TOPOLOGY_FILE="$REPORT_DIR/cputopology.xml"
-echo_header "Analyze CPU topology"
-lstopo --no-io \
-       --physical \
-       --output-format console
-lstopo --no-io \
-       --physical \
-       --force \
-       $TOPOLOGY_FILE
-echo "Wrote topology to $TOPOLOGY_FILE"
+# TOPOLOGY_FILE="$REPORT_DIR/cputopology.xml"
+# echo_header "Analyze CPU topology"
+# lstopo --no-io \
+#        --physical \
+#        --output-format console
+# lstopo --no-io \
+#        --physical \
+#        --force \
+#        $TOPOLOGY_FILE
+# echo "Wrote topology to $TOPOLOGY_FILE"

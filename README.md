@@ -27,7 +27,7 @@ Version | Description
 
 * Input consists of single precision floating point numbers drawn uniformly at random from [0, 1.0).
 * Input size 4000 x 4000 = 16M elements.
-* Each benchmark is run with 4 software threads and the benchmark process is bound with `hwloc-bind` to 4 hardware threads on 4 physical cores.
+* Each benchmark is run with 4 software threads and the benchmark process is bound with [`taskset`](https://linux.die.net/man/1/taskset) to 4 cpus.
 * 5 iterations for each `step` version for both languages, i.e. 5 x 7 x 2 runs in total.
 * The result metrics are reduced to the arithmetic mean, e.g. mean GFLOP/s of 5 independent runs.
 
@@ -60,8 +60,7 @@ These scripts assume the following executables are available on your path:
 * `perf`
 * `cargo`
 * `rustc`
-* `lstopo`
-* `hwloc-bind`
+* `taskset`
 
 You can install and configure both the Rust compiler `rustc` and its package management tool `cargo` by using [rustup](https://github.com/rust-lang-nursery/rustup.rs).
 
