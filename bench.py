@@ -10,7 +10,7 @@ from build import print_header, print_error, STEP_IMPLEMENTATIONS
 
 INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
 
-# Use hwloc to bind 4 threads to 4 hardware threads to 4 physical cores on the first CPU
+# Prefix the benchmark command with taskset, binding the process to 4 physical cores
 CPU_BIND_CMD = "taskset --cpu-list 0-3"
 
 class PerfToolException(BaseException): pass

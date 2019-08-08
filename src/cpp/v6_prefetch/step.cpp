@@ -21,7 +21,7 @@ void step(float* r, const float* d_, int n) {
     }
 
 #if !NO_MULTI_THREAD
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, 1)
 #endif
     for (int ia = 0; ia < na; ++ia) {
         for (int ja = 0; ja < na; ++ja) {

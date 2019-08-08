@@ -33,6 +33,7 @@ if __name__ == "__main__":
         help="Path to the benchmark binaries, if not the default from build.py.")
     parser.add_argument("--threads", "-t",
         type=int,
+        default=1,
         help="Value for environment variables controlling number of threads")
     parser.add_argument("--input_size", "-n",
         type=int,
@@ -44,9 +45,13 @@ if __name__ == "__main__":
     parser.add_argument("--implementation", "-i",
         type=str,
         help="Filter implementations by prefix, e.g '-i v0' runs only v0_baseline.")
+    parser.add_argument("--no-cpp",
+        action='store_true')
+    parser.add_argument("--no-rust",
+        action='store_true')
     parser.add_argument("--verbose", "-v",
-            action='store_true',
-            default=False)
+        action='store_true',
+        default=False)
 
     args = parser.parse_args()
     build_dir = os.path.abspath(os.path.join(args.build_dir, "bin"))
@@ -57,7 +62,13 @@ if __name__ == "__main__":
 
     all_ok = True
 
-    for lang in ("cpp", "rust"):
+    langs = []
+    if not args.no_cpp:
+        langs.append("cpp")
+    if not args.no_rust:
+        langs.append("rust")
+
+    for lang in langs:
         for step_impl in STEP_IMPLEMENTATIONS:
             if impl_filter and not step_impl.startswith(impl_filter):
                 continue

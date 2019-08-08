@@ -28,7 +28,7 @@ impl Stopwatch {
 // TODO generics or associated types or something
 
 pub struct CycleCounter {
-    instants: vec::Vec<i64>,
+    instants: vec::Vec<u64>,
 }
 
 impl CycleCounter {

@@ -2,7 +2,7 @@
 
 BUILD_DIR="./build"
 REPORT_DIR="./reports"
-BENCHMARK_SIZE=500
+BENCHMARK_SIZE=2000
 THREADS=4
 
 # Exit immediately if some command exits with a non-zero code
