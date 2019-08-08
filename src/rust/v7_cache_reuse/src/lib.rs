@@ -1,19 +1,22 @@
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
 #[cfg(not(feature = "no-multi-thread"))]
-use rayon::prelude::*; // Parallel chunks iterator
+use rayon::prelude::*; // Parallel chunks iterator, parallel sort
 
 extern crate tools;
 use tools::simd; // Custom SIMD helpers
+use std::arch::x86_64::__m256;
 
 extern crate core;
-use core::arch::x86_64::_pdep_u32;
+use core::arch::x86_64::_pdep_u32; // For interleaving bits to construct Z-order curve
 
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
     #[allow(non_upper_case_globals)]
     const m256_length: usize = simd::M256_LENGTH;
+    // TODO row slices for cache locality
+    // const row_chunk_width: usize = 400;
     let vecs_per_col = (n + m256_length - 1) / m256_length;
 
     // Pack d and its transpose into containers of vertical m256 vectors
@@ -38,38 +41,42 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     }
 
-    // Build a vector of row pairs that when iterated, follows the Z-order curve
-    let mut row_pairs = std::vec::Vec::with_capacity(vecs_per_col * vecs_per_col);
-    for i in 0..vecs_per_col {
+    // Build a Z-order curve iteration pattern of pairs (i, j) by using interleaved bits of i and j as a sort key
+    // Init vector of 3-tuples
+    let mut row_pairs = std::vec![(0, 0, 0); vecs_per_col * vecs_per_col];
+    // Define a function that interleaves one row of indexes
+    let interleave_row = |(i, row): (usize, &mut [(usize, usize, usize)])| {
         for j in 0..vecs_per_col {
-            // Interleave both row indexes by scattering bits to produce a sorting key
-            let ija = unsafe {
-                _pdep_u32(i as u32, 0x55555555) | _pdep_u32(j as u32, 0xAAAAAAAA)
-            };
-            row_pairs.push((ija, i, j));
+            let ija = unsafe { _pdep_u32(i as u32, 0x55555555) | _pdep_u32(j as u32, 0xAAAAAAAA) };
+            row[j] = (ija as usize, i, j);
         }
-    }
-    // Sort using the interleaved bits as key,
-    // no need for stable sort since there should be no duplicates keys
-    row_pairs.sort_unstable();
-
-    // TODO z-order somehow in parallel,
-    // cannot replace this with par_iter, because its for_each method takes only immutable function closures
-    // i.e., r cannot be mutated with par_iter
+    };
+    // Apply the function independently on all rows and sort by ija
     #[cfg(not(feature = "no-multi-thread"))]
-    panic!("Multithreading not implemented with v7");
-
+    {
+        row_pairs.par_chunks_mut(vecs_per_col).enumerate().for_each(interleave_row);
+        row_pairs.par_sort_unstable();
+    }
     #[cfg(feature = "no-multi-thread")]
-    row_pairs.iter().for_each(|(_, i, j)| {
+    {
+        row_pairs.chunks_mut(vecs_per_col).enumerate().for_each(interleave_row);
+        row_pairs.sort_unstable();
+    }
+
+    // Working memory for each thread to update their results
+    // When enumerated, also conveniently indexes the Z-order curve keys in m256_length chunks
+    let mut partial_results = std::vec![simd::m256_infty(); vecs_per_col * vecs_per_col * m256_length];
+
+    // This function computes one block of results into partial_results
+    let _step_partial_block = |(z, partial_block): (usize, &mut [__m256])| {
+        let (_, i, j) = row_pairs[z];
         // Intermediate results
         let mut tmp = [simd::m256_infty(); m256_length];
         // Horizontally compute 8 minimums from each pair of vertical vectors for this row chunk
         for col in 0..n {
-            let vd_i = n * i + col;
-            let vt_i = n * j + col;
             // Load vector pair
-            let a0 = vd[vd_i];
-            let b0 = vt[vt_i];
+            let a0 = vd[n * i + col];
+            let b0 = vt[n * j + col];
             // Compute permutations
             let a2 = simd::swap(a0, 2);
             let a4 = simd::swap(a0, 4);
@@ -85,12 +92,28 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             tmp[6] = simd::min(tmp[6], simd::add(a6, b0));
             tmp[7] = simd::min(tmp[7], simd::add(a6, b1));
         }
+        // Store partial results (8 vecs of type __m256) to global memory
+        partial_block.copy_from_slice(&tmp);
+    };
+
+    // Do the heavy lifting in chunks of size m256_length
+    // If run in parallel, this creates (vecs_per_col * vecs_per_col) independent jobs for threads to steal
+
+    #[cfg(not(feature = "no-multi-thread"))]
+    partial_results.par_chunks_mut(m256_length).enumerate().for_each(_step_partial_block);
+    #[cfg(feature = "no-multi-thread")]
+    partial_results.chunks_mut(m256_length).enumerate().for_each(_step_partial_block);
+
+    // Extract final results
+    // TODO in parallel
+    for (z, (_, i, j)) in row_pairs.iter().enumerate() {
+        let begin = m256_length * z;
+        let mut tmp = partial_results[begin..begin + m256_length].to_owned();
         // Swap all comparisons of b1 back for easier vector element extraction
         tmp[1] = simd::swap(tmp[1], 1);
         tmp[3] = simd::swap(tmp[3], 1);
         tmp[5] = simd::swap(tmp[5], 1);
         tmp[7] = simd::swap(tmp[7], 1);
-
         // Extract each element of each vector and assign to result chunk
         for jb in 0..m256_length {
             for ib in 0..m256_length {
@@ -103,7 +126,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 }
             }
         }
-    });
+    }
 }
 
 

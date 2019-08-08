@@ -19,7 +19,7 @@ Version | Description
 `v4_register_reuse` | Read vectors in blocks of 6 and do 9+9 arithmetic operations for each block, improving the ratio of operations per memory access
 `v5_more_register_reuse` | Reorder input structure by packing the data into SIMD vectors vertically, instead of horizontally. Read the vertically ordered data as vector pairs and do 8+8 arithmetic operations for each pair, further improving the ratio of operations per memory access
 `v6_prefetching` | Add prefetch hint instructions to take advantage of vacant CPU execution ports
-`v7_cache_reuse` | (multi-core not implemented) Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern, improving data locality from cache reuse
+`v7_cache_reuse` | Add [Z-order curve](https://en.wikipedia.org/wiki/Z-order_curve) memory access pattern, improving data locality from cache reuse
 
 ## Benchmark results
 
