@@ -6,20 +6,17 @@ import os.path
 
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams["svg.fonttype"] = "none"
 
 
-implementation_labels = tuple('v{}'.format(i) for i in range(7))
+implementation_labels = tuple('v{}'.format(i) for i in range(8))
 langs = (
-    {
-        "key": "cpp",
-        "display_name": "C++",
-        "github_color": "#f34b7d",
-    },
-    {
-        "key": "rust",
-        "display_name": "Rust",
-        "github_color": "#dea584",
-    },
+    {"key": "cpp",
+     "display_name": "C++",
+     "github_color": "#f34b7d"},
+    {"key": "rust",
+     "display_name": "Rust",
+     "github_color": "#dea584"},
 )
 
 
@@ -86,7 +83,7 @@ def plot_reports(report_path, metric):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create bar plots from benchmark csv reports.")
-    parser.add_argument("report_dir",
+    parser.add_argument("csv_report_output_dir",
         type=str,
         help="Directory to load reports from.")
     parser.add_argument("--output_dir",
@@ -104,11 +101,12 @@ if __name__ == "__main__":
         default="gflops",
         help="Metric to be used on the vertical axis. Defaults to GFLOP per second.")
     args = parser.parse_args()
-    plot_reports(args.report_dir, args.metric)
+    report_dir = args.csv_report_output_dir
+    plot_reports(report_dir, args.metric)
     if not args.output_dir:
-        output_img_path = os.path.join(args.report_dir, "plot.png")
+        output_img_path = os.path.join(report_dir, "plot.svg")
     else:
-        output_img_path = os.path.join(args.output_dir, "plot.png")
+        output_img_path = os.path.join(args.output_dir, "plot.svg")
 
     plt.savefig(output_img_path)
     print("Wrote plot to {}".format(output_img_path))
