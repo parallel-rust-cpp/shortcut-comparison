@@ -19,12 +19,12 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // const row_chunk_width: usize = 400;
     let vecs_per_col = (n + m256_length - 1) / m256_length;
 
-    // Pack d and its transpose into containers of vertical m256 vectors
-    let mut vt = std::vec::Vec::with_capacity(n * vecs_per_col);
-    let mut vd = std::vec::Vec::with_capacity(n * vecs_per_col);
-
-    for row in 0..vecs_per_col {
-        for col in 0..n {
+    // Initialize memory for packing d and its transpose into containers of vertical m256 vectors
+    let mut vd = std::vec![simd::m256_infty(); n * vecs_per_col];
+    let mut vt = std::vec![simd::m256_infty(); n * vecs_per_col];
+    // Define a function to be applied on each row of d and its transpose
+    let preprocess_row = |(row, (vd_row, vt_row)): (usize, (&mut [__m256], &mut [__m256]))| {
+        for (col, (vd_elem, vt_elem)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
             // Build 8 element arrays for vd and vt, with infinity padding
             let mut d_slice = [std::f32::INFINITY; m256_length];
             let mut t_slice = [std::f32::INFINITY; m256_length];
@@ -36,19 +36,30 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 }
             }
             // Convert arrays to 256-bit vectors and assign to vector containers
-            vd.push(simd::from_slice(&d_slice));
-            vt.push(simd::from_slice(&t_slice));
+            *vd_elem = simd::from_slice(&d_slice);
+            *vt_elem = simd::from_slice(&t_slice);
         }
-    }
+    };
+    // Normalize each row in parallel simultaneously into both vt and vd
+    #[cfg(not(feature = "no-multi-thread"))]
+    vd.par_chunks_mut(n)
+        .zip(vt.par_chunks_mut(n))
+        .enumerate()
+        .for_each(preprocess_row);
+    #[cfg(feature = "no-multi-thread")]
+    vd.chunks_mut(n)
+        .zip(vt.chunks_mut(n))
+        .enumerate()
+        .for_each(preprocess_row);
 
     // Build a Z-order curve iteration pattern of pairs (i, j) by using interleaved bits of i and j as a sort key
     // Init vector of 3-tuples
     let mut row_pairs = std::vec![(0, 0, 0); vecs_per_col * vecs_per_col];
     // Define a function that interleaves one row of indexes
     let interleave_row = |(i, row): (usize, &mut [(usize, usize, usize)])| {
-        for j in 0..vecs_per_col {
+        for (j, x) in row.iter_mut().enumerate() {
             let ija = unsafe { _pdep_u32(i as u32, 0x55555555) | _pdep_u32(j as u32, 0xAAAAAAAA) };
-            row[j] = (ija as usize, i, j);
+            *x = (ija as usize, i, j);
         }
     };
     // Apply the function independently on all rows and sort by ija
@@ -100,9 +111,15 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // If run in parallel, this creates (vecs_per_col * vecs_per_col) independent jobs for threads to steal
 
     #[cfg(not(feature = "no-multi-thread"))]
-    partial_results.par_chunks_mut(m256_length).enumerate().for_each(_step_partial_block);
+    partial_results
+        .par_chunks_mut(m256_length)
+        .enumerate()
+        .for_each(_step_partial_block);
     #[cfg(feature = "no-multi-thread")]
-    partial_results.chunks_mut(m256_length).enumerate().for_each(_step_partial_block);
+    partial_results
+        .chunks_mut(m256_length)
+        .enumerate()
+        .for_each(_step_partial_block);
 
     // Extract final results
     // TODO in parallel
