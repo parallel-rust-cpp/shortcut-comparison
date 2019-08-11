@@ -7,7 +7,7 @@ import sys
 from build import print_header, STEP_IMPLEMENTATIONS
 
 
-INPUT_SIZES = [1, 2, 31, 32, 33, 99, 100, 101, 199, 201, 501]
+INPUT_SIZES = [1, 2, 31, 32, 33, 99, 100, 101, 120, 150, 175, 199, 201, 501, 999]
 
 
 def run(cmd, num_threads):
