@@ -13,13 +13,10 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     const m256_length: usize = simd::M256_LENGTH;
     let vecs_per_col = (n + m256_length - 1) / m256_length;
 
-    // Pack d and its transpose into containers of vertical m256 vectors
-    let mut vt = std::vec::Vec::with_capacity(n * vecs_per_col);
-    let mut vd = std::vec::Vec::with_capacity(n * vecs_per_col);
-
-    for row in 0..vecs_per_col {
-        for col in 0..n {
-            // Build 8 element arrays for vd and vt, with infinity padding
+    let mut vd = std::vec![simd::m256_infty(); n * vecs_per_col];
+    let mut vt = std::vec![simd::m256_infty(); n * vecs_per_col];
+    let preprocess_row = |(row, (vd_row, vt_row)): (usize, (&mut [__m256], &mut [__m256]))| {
+        for (col, (vd_elem, vt_elem)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
             let mut d_slice = [std::f32::INFINITY; m256_length];
             let mut t_slice = [std::f32::INFINITY; m256_length];
             for vec_j in 0..m256_length {
@@ -29,11 +26,20 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                     t_slice[vec_j] = d[n * col + j];
                 }
             }
-            // Convert arrays to 256-bit vectors and assign to vector containers
-            vd.push(simd::from_slice(&d_slice));
-            vt.push(simd::from_slice(&t_slice));
+            *vd_elem = simd::from_slice(&d_slice);
+            *vt_elem = simd::from_slice(&t_slice);
         }
-    }
+    };
+    #[cfg(not(feature = "no-multi-thread"))]
+    vd.par_chunks_mut(n)
+        .zip(vt.par_chunks_mut(n))
+        .enumerate()
+        .for_each(preprocess_row);
+    #[cfg(feature = "no-multi-thread")]
+    vd.chunks_mut(n)
+        .zip(vt.chunks_mut(n))
+        .enumerate()
+        .for_each(preprocess_row);
 
     // For some row i in d, compute all results for a row block in r, where the block contains rows equal to the length of a 256-bit vector
     let _step_row = |(i, row_block): (usize, &mut [f32])| {
