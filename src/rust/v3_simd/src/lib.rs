@@ -2,7 +2,6 @@
 extern crate rayon;
 #[cfg(not(feature = "no-multi-thread"))]
 use rayon::prelude::*;
-
 // f32 SIMD vector containing 8 elements
 use std::arch::x86_64::__m256;
 
@@ -16,7 +15,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // We are using 256-bit single precision float vectors (f32 elements) so this will be equal to 8
     const vec_width: usize = simd::M256_LENGTH;
     let vecs_per_row = (n + vec_width - 1) / vec_width;
-    // Pack d and its transpose into m256 vectors, each containing 8 f32::INFINITYs
+    // Pack d and its transpose into m256 vectors row-wise, each vector containing 8 f32::INFINITYs
     let mut vd = std::vec![simd::m256_infty(); n * vecs_per_row];
     let mut vt = std::vec![simd::m256_infty(); n * vecs_per_row];
     // Function: for one row of simd-vectors in vd and vt, pack the rows with values from d,

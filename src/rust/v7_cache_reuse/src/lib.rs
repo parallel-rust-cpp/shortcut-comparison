@@ -1,11 +1,12 @@
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
 #[cfg(not(feature = "no-multi-thread"))]
-use rayon::prelude::*; // Parallel chunks iterator, parallel sort
+use rayon::prelude::*;
+
+use std::arch::x86_64::__m256;
 
 extern crate tools;
-use tools::simd; // Custom SIMD helpers
-use std::arch::x86_64::__m256;
+use tools::simd;
 
 extern crate core;
 use core::arch::x86_64::_pdep_u32; // For interleaving bits to construct Z-order curve

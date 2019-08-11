@@ -31,8 +31,7 @@ pub fn lowestf32(v: __m256) -> f32 {
 /// Create a 256-bit vector from a f32 slice of length 8
 #[inline]
 pub fn from_slice(s: &[f32]) -> __m256 {
-    unsafe { _mm256_set_ps(s[0], s[1], s[2], s[3],
-                           s[4], s[5], s[6], s[7]) }
+    unsafe { _mm256_set_ps(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]) }
 }
 
 /// Permute 1, 2, or 4 element ranges with their neighbors.

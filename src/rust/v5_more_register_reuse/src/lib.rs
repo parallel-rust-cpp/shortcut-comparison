@@ -1,10 +1,12 @@
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
 #[cfg(not(feature = "no-multi-thread"))]
-use rayon::prelude::*; // Parallel chunks iterator
+use rayon::prelude::*;
+
+use std::arch::x86_64::__m256;
 
 extern crate tools;
-use tools::simd; // Custom SIMD helpers
+use tools::simd;
 
 
 #[inline]
