@@ -41,6 +41,8 @@ check_dependencies
 
 # Single thread
 
+rm -rf $BUILD_DIR
+
 echo_header "==== SINGLE THREAD BENCHMARK ===="
 
 echo_header "Building all libraries"
