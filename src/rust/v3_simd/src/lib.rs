@@ -55,9 +55,13 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     };
     #[cfg(not(feature = "no-multi-thread"))]
-    r.par_chunks_mut(n).zip(vd.par_chunks(vecs_per_row)).for_each(step_row);
+    r.par_chunks_mut(n)
+        .zip(vd.par_chunks(vecs_per_row))
+        .for_each(step_row);
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_mut(n).zip(vd.chunks(vecs_per_row)).for_each(step_row);
+    r.chunks_mut(n)
+        .zip(vd.chunks(vecs_per_row))
+        .for_each(step_row);
 }
 
 

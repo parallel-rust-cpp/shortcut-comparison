@@ -25,10 +25,15 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             *res = v;
         }
     };
+    // Partition r and d into slices, each containing a single row of r and d, and apply the function on the row pairs
     #[cfg(not(feature = "no-multi-thread"))]
-    r.par_chunks_mut(n).zip(d.par_chunks(n)).for_each(step_row);
+    r.par_chunks_mut(n)
+        .zip(d.par_chunks(n))
+        .for_each(step_row);
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_mut(n).zip(d.chunks(n)).for_each(step_row);
+    r.chunks_mut(n)
+        .zip(d.chunks(n))
+        .for_each(step_row);
 }
 
 

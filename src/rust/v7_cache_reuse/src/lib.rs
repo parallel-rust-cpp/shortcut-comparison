@@ -19,13 +19,10 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // const row_chunk_width: usize = 400;
     let vecs_per_col = (n + m256_length - 1) / m256_length;
 
-    // Initialize memory for packing d and its transpose into containers of vertical m256 vectors
     let mut vd = std::vec![simd::m256_infty(); n * vecs_per_col];
     let mut vt = std::vec![simd::m256_infty(); n * vecs_per_col];
-    // Define a function to be applied on each row of d and its transpose
     let preprocess_row = |(row, (vd_row, vt_row)): (usize, (&mut [__m256], &mut [__m256]))| {
         for (col, (vd_elem, vt_elem)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
-            // Build 8 element arrays for vd and vt, with infinity padding
             let mut d_slice = [std::f32::INFINITY; m256_length];
             let mut t_slice = [std::f32::INFINITY; m256_length];
             for vec_j in 0..m256_length {
@@ -35,12 +32,10 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                     t_slice[vec_j] = d[n * col + j];
                 }
             }
-            // Convert arrays to 256-bit vectors and assign to vector containers
             *vd_elem = simd::from_slice(&d_slice);
             *vt_elem = simd::from_slice(&t_slice);
         }
     };
-    // Normalize each row in parallel simultaneously into both vt and vd
     #[cfg(not(feature = "no-multi-thread"))]
     vd.par_chunks_mut(n)
         .zip(vt.par_chunks_mut(n))
