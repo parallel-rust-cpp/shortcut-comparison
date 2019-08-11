@@ -15,7 +15,7 @@ COMMANDS = {
         "cmd": ["cmake", "-D", "SC_NO_MULTI_THREAD=0", "G", "Unix Makefiles"],
     },
     "cargo-build": {
-        "env": {"RUSTFLAGS": "-Z asm_comments"},
+        "env": {"RUSTFLAGS": "-Z asm_comments -C target-cpu=native"},
         "cmd": ["cargo", "build", "--release"],
     },
     "make": {

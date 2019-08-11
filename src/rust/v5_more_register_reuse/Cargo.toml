@@ -19,4 +19,3 @@ incremental = false
 lto = false
 opt-level = 3
 overflow-checks = false
-target-cpu = "native"
