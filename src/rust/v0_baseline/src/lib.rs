@@ -32,9 +32,16 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
 #[no_mangle]
 // Raw pointers can be dereferenced only inside 'unsafe' sections, hence function is marked as unsafe
 pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: i32) {
-    // Wrap raw pointers into 'not unsafe' Rust slices with a well defined size
-    let d = std::slice::from_raw_parts(d_raw, (n * n) as usize);
-    let mut r = std::slice::from_raw_parts_mut(r_raw, (n * n) as usize);
-    // Evaluate the Rust implementation of the step-function
-    _step(&mut r, d, n as usize);
+    // Catch any unwinding panics so that they won't propagate over the ABI to the calling program, which would be undefined behaviour
+    let result = std::panic::catch_unwind(|| {
+        // Wrap raw pointers into 'not unsafe' Rust slices with a well defined size
+        let d = std::slice::from_raw_parts(d_raw, (n * n) as usize);
+        let mut r = std::slice::from_raw_parts_mut(r_raw, (n * n) as usize);
+        // Evaluate the Rust implementation of the step-function
+        _step(&mut r, d, n as usize);
+    });
+    // Print an error to stderr if something went horribly wrong
+    if result.is_err() {
+        eprintln!("error: rust panicked");
+    }
 }
