@@ -7,7 +7,7 @@ import sys
 from build import print_header, STEP_IMPLEMENTATIONS
 
 
-INPUT_SIZES = [1, 10, 100, 200]
+INPUT_SIZES = [1, 2, 31, 32, 33, 99, 100, 101, 199, 201, 501]
 
 
 def run(cmd, num_threads):
@@ -15,12 +15,14 @@ def run(cmd, num_threads):
     if num_threads:
         env = {
             "OMP_NUM_THREADS": str(num_threads),
+            "RUST_BACKTRACE": "full",
             "RAYON_NUM_THREADS": str(num_threads)
         }
     result = subprocess.run(
         cmd.split(' '),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        check=True,
         env=env
     )
     return result.stdout.decode("utf-8")
