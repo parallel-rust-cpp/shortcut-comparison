@@ -86,9 +86,9 @@ if __name__ == "__main__":
     parser.add_argument("csv_report_output_dir",
         type=str,
         help="Directory to load reports from.")
-    parser.add_argument("--output_dir",
+    parser.add_argument("--output-path",
         type=str,
-        help="Directory where to write the resulting plot. Defaults to report dir.")
+        help="Where to write output image. Defaults to plot.svg in the report directory.")
     parser.add_argument("--metric",
         type=str,
         choices=(
@@ -103,10 +103,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     report_dir = args.csv_report_output_dir
     plot_reports(report_dir, args.metric)
-    if not args.output_dir:
+    if not args.output_path:
         output_img_path = os.path.join(report_dir, "plot.svg")
     else:
-        output_img_path = os.path.join(args.output_dir, "plot.svg")
+        output_img_path = args.output_path
 
     plt.savefig(output_img_path)
     print("Wrote plot to {}".format(output_img_path))
