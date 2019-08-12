@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
+# Exit immediately if some command exits with a non-zero code
+set -e
 
 BUILD_DIR="./build"
 REPORT_DIR="./reports"
 BENCHMARK_SIZE=2000
 THREADS=4
-
-# Exit immediately if some command exits with a non-zero code
-set -e
 
 function echo_red {
     echo -e "\e[31m$@\e[0m"
@@ -41,7 +40,7 @@ check_dependencies
 
 # Single thread
 
-rm -rf $BUILD_DIR
+rm --recursive --force $BUILD_DIR
 
 echo_header "==== SINGLE THREAD BENCHMARK ===="
 
@@ -53,9 +52,9 @@ echo_header "Building all libraries"
 
 echo_header "Testing all libraries"
 
-./test.py --input_size 500 \
-          --iterations 5 \
+./test.py --iterations 10 \
           --build_dir $BUILD_DIR
+          --threads 1
 
 echo_header "Running all benchmarks"
 
@@ -63,12 +62,12 @@ echo_header "Running all benchmarks"
            --report_dir "$REPORT_DIR/single_core" \
            --build_dir $BUILD_DIR \
            --input_size $BENCHMARK_SIZE \
-           --threads $THREADS \
-           --iterations 5
+           --threads 1 \
+           --iterations 10
 
 echo_header "==== SINGLE THREAD BENCHMARK COMPLETE ===="
 
-rm -rf $BUILD_DIR
+rm --recursive --force $BUILD_DIR
 
 # Multi thread
 
@@ -81,9 +80,9 @@ echo_header "Building all libraries"
 
 echo_header "Testing all libraries"
 
-./test.py --input_size 500 \
-          --iterations 5 \
+./test.py --iterations 10 \
           --build_dir $BUILD_DIR
+          --threads $THREADS
 
 echo_header "Running all benchmarks"
 
@@ -92,17 +91,6 @@ echo_header "Running all benchmarks"
            --build_dir $BUILD_DIR \
            --input_size $BENCHMARK_SIZE \
            --threads $THREADS \
-           --iterations 5
+           --iterations 10
 
 echo_header "==== MULTI THREAD BENCHMARK COMPLETE ===="
-
-# TOPOLOGY_FILE="$REPORT_DIR/cputopology.xml"
-# echo_header "Analyze CPU topology"
-# lstopo --no-io \
-#        --physical \
-#        --output-format console
-# lstopo --no-io \
-#        --physical \
-#        --force \
-#        $TOPOLOGY_FILE
-# echo "Wrote topology to $TOPOLOGY_FILE"
