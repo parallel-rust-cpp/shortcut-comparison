@@ -43,7 +43,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(preprocess_row);
 
-    // Everything is exactly as in v5, but with prefetch hints in the inner most loop
+    // Everything is exactly as in v5, but with prefetch hints in the innermost loop
     const PREFETCH_LENGTH: usize = 20;
     let step_row = |(i, (r_row_block, vd_row)): (usize, (&mut [f32], &[__m256]))| {
         assert_eq!(vd_row.len(), n);
@@ -53,11 +53,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         for (j, vt_row) in vt.chunks(n).enumerate() {
             assert_eq!(vt_row.len(), n);
             let mut tmp = [simd::m256_infty(); vec_width];
-            for col in 0..n {
-                simd::prefetch(vd_ptr, (n * i + col + PREFETCH_LENGTH) as isize);
-                simd::prefetch(vt_ptr, (n * j + col + PREFETCH_LENGTH) as isize);
-                let d0 = vd_row[col];
-                let t0 = vt_row[col];
+            for (col, (&d0, &t0)) in vd_row.iter().zip(vt_row).enumerate() {
                 let d2 = simd::swap(d0, 2);
                 let d4 = simd::swap(d0, 4);
                 let d6 = simd::swap(d4, 2);
@@ -70,6 +66,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 tmp[5] = simd::min(tmp[5], simd::add(d4, t1));
                 tmp[6] = simd::min(tmp[6], simd::add(d6, t0));
                 tmp[7] = simd::min(tmp[7], simd::add(d6, t1));
+                simd::prefetch(vd_ptr, (n * i + col + PREFETCH_LENGTH) as isize);
+                simd::prefetch(vt_ptr, (n * j + col + PREFETCH_LENGTH) as isize);
             }
             tmp[1] = simd::swap(tmp[1], 1);
             tmp[3] = simd::swap(tmp[3], 1);
