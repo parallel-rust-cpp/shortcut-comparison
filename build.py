@@ -15,7 +15,7 @@ COMMANDS = {
         "cmd": ["cmake", "-D", "SC_NO_MULTI_THREAD=0", "G", "Unix Makefiles"],
     },
     "cargo-build": {
-        "env": {"RUSTFLAGS": "-Z asm_comments -C target-cpu=native"},
+        "env": {"RUSTFLAGS": "-C target-cpu=native"},
         "cmd": ["cargo", "build", "--release"],
     },
     "make": {
@@ -105,6 +105,7 @@ if __name__ == "__main__":
         append_rust_flags("--cfg feature=\"no-multi-thread\"")
     if args.emit_asm:
         append_rust_flags("--emit asm")
+        append_rust_flags("-Z asm_comments")
 
     if not os.path.exists(build_dir):
         os.makedirs(build_dir)

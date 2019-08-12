@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 from build import print_header, STEP_IMPLEMENTATIONS
+from bench import CPU_BIND_CMD
 
 
 INPUT_SIZES = [1, 2, 31, 32, 33, 99, 100, 101, 120, 150, 175, 199, 201, 501, 999]
@@ -18,6 +19,7 @@ def run(cmd, num_threads):
             "RUST_BACKTRACE": "full",
             "RAYON_NUM_THREADS": str(num_threads)
         }
+    cmd = CPU_BIND_CMD + ' ' + cmd
     result = subprocess.run(
         cmd.split(' '),
         stdout=subprocess.PIPE,
