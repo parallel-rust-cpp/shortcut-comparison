@@ -18,7 +18,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     const vec_width: usize = simd::M256_LENGTH;
     // How many adjacent columns to process during one pass
     // Smaller numbers improve cache locality but adds overhead from having to merge partial results
-    const ROW_STRIPE_WIDTH: usize = 500;
+    const VERTICAL_STRIPE_WIDTH: usize = 500;
 
     let vecs_per_col = (n + vec_width - 1) / vec_width;
 
@@ -75,44 +75,61 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // Working memory for each thread to update their results
     // When enumerated, also conveniently indexes the Z-order curve keys in vec_width chunks
     let mut partial_results = std::vec![simd::m256_infty(); vecs_per_col * vecs_per_col * vec_width];
-    // This function computes one block of results into partial_results
-    let step_partial_block = |(z, partial_block): (usize, &mut [__m256])| {
-        let (_, i, j) = row_pairs[z];
-        let mut tmp = [simd::m256_infty(); vec_width];
-        // Load row i and column j
-        let vd_row = &vd[n * i..n * (i + 1)];
-        let vt_row = &vt[n * j..n * (j + 1)];
-        for (col, (&d0, &t0)) in vd_row.iter().zip(vt_row).enumerate() {
-            let d2 = simd::swap(d0, 2);
-            let d4 = simd::swap(d0, 4);
-            let d6 = simd::swap(d4, 2);
-            let t1 = simd::swap(t0, 1);
-            tmp[0] = simd::min(tmp[0], simd::add(d0, t0));
-            tmp[1] = simd::min(tmp[1], simd::add(d0, t1));
-            tmp[2] = simd::min(tmp[2], simd::add(d2, t0));
-            tmp[3] = simd::min(tmp[3], simd::add(d2, t1));
-            tmp[4] = simd::min(tmp[4], simd::add(d4, t0));
-            tmp[5] = simd::min(tmp[5], simd::add(d4, t1));
-            tmp[6] = simd::min(tmp[6], simd::add(d6, t0));
-            tmp[7] = simd::min(tmp[7], simd::add(d6, t1));
-            // simd::prefetch(vd_ptr, (n * i + col + PREFETCH_LENGTH) as isize);
-            // simd::prefetch(vt_ptr, (n * j + col + PREFETCH_LENGTH) as isize);
-        }
-        // Store partial results (8 vecs of type __m256) to global memory
-        partial_block.copy_from_slice(&tmp);
-    };
 
-    #[cfg(not(feature = "no-multi-thread"))]
-    partial_results
-        .par_chunks_mut(vec_width)
-        .enumerate()
-        .for_each(step_partial_block);
-    #[cfg(feature = "no-multi-thread")]
-    partial_results
-        .chunks_mut(vec_width)
-        .enumerate()
-        .for_each(step_partial_block);
+    // const PREFETCH_LENGTH: usize = 25;
 
+    // Process vd and vt in Z-order one vertical stripe at a time, writing partial results in parallel
+    let num_vertical_stripes = (n + VERTICAL_STRIPE_WIDTH - 1) / VERTICAL_STRIPE_WIDTH;
+    for stripe in 0..num_vertical_stripes {
+        let col_begin = stripe * VERTICAL_STRIPE_WIDTH;
+        let next_begin = (stripe + 1) * VERTICAL_STRIPE_WIDTH;
+        let col_end = n.min(next_begin);
+        // This function computes one block of results into partial_results
+        let step_partial_block = |(z, partial_block): (usize, &mut [__m256])| {
+            let (_, i, j) = row_pairs[z];
+            // Copy results from previous pass over previous stripe
+            let mut tmp = partial_block.to_owned();
+            // Load current stripe of row i and column j
+            let vd_row = &vd[(n * i + col_begin)..(n * i + col_end)];
+            let vt_row = &vt[(n * j + col_begin)..(n * j + col_end)];
+            assert!(vd_row.len() <= VERTICAL_STRIPE_WIDTH);
+            assert!(vt_row.len() <= VERTICAL_STRIPE_WIDTH);
+            // Pointers for prefetching
+            // let vd_row_ptr = vd_row.as_ptr();
+            // let vt_row_ptr = vt_row.as_ptr();
+            for (col, (&d0, &t0)) in vd_row.iter().zip(vt_row).enumerate() {
+                let d2 = simd::swap(d0, 2);
+                let d4 = simd::swap(d0, 4);
+                let d6 = simd::swap(d4, 2);
+                let t1 = simd::swap(t0, 1);
+                tmp[0] = simd::min(tmp[0], simd::add(d0, t0));
+                tmp[1] = simd::min(tmp[1], simd::add(d0, t1));
+                tmp[2] = simd::min(tmp[2], simd::add(d2, t0));
+                tmp[3] = simd::min(tmp[3], simd::add(d2, t1));
+                tmp[4] = simd::min(tmp[4], simd::add(d4, t0));
+                tmp[5] = simd::min(tmp[5], simd::add(d4, t1));
+                tmp[6] = simd::min(tmp[6], simd::add(d6, t0));
+                tmp[7] = simd::min(tmp[7], simd::add(d6, t1));
+                // simd::prefetch(vd_row_ptr, (col + PREFETCH_LENGTH) as isize);
+                // simd::prefetch(vt_row_ptr, (col + PREFETCH_LENGTH) as isize);
+            }
+            // Store partial results (8 vecs of type __m256) to global memory
+            partial_block.copy_from_slice(&tmp);
+        };
+        // Process current stripe
+        #[cfg(not(feature = "no-multi-thread"))]
+        partial_results
+            .par_chunks_mut(vec_width)
+            .enumerate()
+            .for_each(step_partial_block);
+        #[cfg(feature = "no-multi-thread")]
+        partial_results
+            .chunks_mut(vec_width)
+            .enumerate()
+            .for_each(step_partial_block);
+    }
+
+    let mut rz = std::vec![0.0; vecs_per_col * vecs_per_col * vec_width * vec_width];
     let set_z_order_result_block = |(z, (rz_block_pair, tmp)): (usize, (&mut [f32], &mut [__m256]))| {
         let (_, i, j) = row_pairs[z];
         tmp[1] = simd::swap(tmp[1], 1);
@@ -132,7 +149,6 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     };
     // Extract final results in Z-order into rz
-    let mut rz = std::vec![0.0; vecs_per_col * vecs_per_col * vec_width * vec_width];
     #[cfg(not(feature = "no-multi-thread"))]
     rz.par_chunks_mut(vec_width * vec_width)
         .zip(partial_results.par_chunks_mut(vec_width))
