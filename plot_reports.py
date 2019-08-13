@@ -32,8 +32,8 @@ def parse_data_from_csv(report_path, lang, reduction="mean"):
                 ("N (rows)", int(results[0]["N (rows)"])),
                 ("GFLOP/s", sum(float(result["GFLOP/s"]) for result in results)/len(results)),
                 ("time (us)", sum(int(result["time (us)"]) for result in results)/len(results)),
-                ("instructions", sum(int(result["instructions"]) for result in results)/len(results)),
-                ("cycles", sum(int(result["cycles"]) for result in results)/len(results)),
+                ("instructions", sum(int(result.get("instructions", 0)) for result in results)/len(results)),
+                ("cycles", sum(int(result.get("cycles", 0)) for result in results)/len(results)),
             ])
     return data
 
