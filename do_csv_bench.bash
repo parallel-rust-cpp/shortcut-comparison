@@ -23,7 +23,7 @@ function echo_header {
 
 function check_dependencies {
     local all_ok=1
-    local executables='python3 clang++ make cmake perf cargo rustc'
+    local executables='python3 clang++ make cmake cargo rustc'
     for dep in $executables; do
         local where=$(type -p $dep)
         if [ -z $where ]; then
@@ -53,6 +53,7 @@ if [ $DO_SINGLE_THREAD -ne 0 ]; then
         --threads 1
     echo_header "Running all benchmarks"
     ./bench.py --reporter_out csv \
+        --no-perf \
         --report_dir "$REPORT_DIR/single_core" \
         --build_dir $BUILD_DIR \
         --input_size $BENCHMARK_SIZE \
@@ -72,6 +73,7 @@ if [ $DO_MULTI_THREAD -ne 0 ]; then
         --threads $THREADS
     echo_header "Running all benchmarks"
     ./bench.py --reporter_out csv \
+        --no-perf \
         --report_dir "$REPORT_DIR/multi_core" \
         --build_dir $BUILD_DIR \
         --input_size $BENCHMARK_SIZE \
