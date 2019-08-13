@@ -4,7 +4,7 @@ set -e
 
 BUILD_DIR=./build
 REPORT_DIR=./reports
-BENCHMARK_SIZE=4000
+BENCHMARK_SIZE=6000
 THREADS=4
 TEST_ITERATIONS=1
 DO_SINGLE_THREAD=1
@@ -48,10 +48,12 @@ if [ $DO_SINGLE_THREAD -ne 0 ]; then
     echo_header "Building all libraries"
     ./build.py --verbose --no-multi-thread --build_dir $BUILD_DIR
     echo_header "Testing all libraries"
+    echo "loadavg" $(cut -f1-3 -d' ' /proc/loadavg)
     ./test.py --iterations $TEST_ITERATIONS \
         --build_dir $BUILD_DIR \
         --threads 1
     echo_header "Running all benchmarks"
+    echo "loadavg" $(cut -f1-3 -d' ' /proc/loadavg)
     ./bench.py --reporter_out csv \
         --no-perf \
         --report_dir "$REPORT_DIR/single_core" \
@@ -68,10 +70,12 @@ if [ $DO_MULTI_THREAD -ne 0 ]; then
     echo_header "Building all libraries"
     ./build.py --verbose --build_dir $BUILD_DIR
     echo_header "Testing all libraries"
+    echo "loadavg" $(cut -f1-3 -d' ' /proc/loadavg)
     ./test.py --iterations $TEST_ITERATIONS \
         --build_dir $BUILD_DIR \
         --threads $THREADS
     echo_header "Running all benchmarks"
+    echo "loadavg" $(cut -f1-3 -d' ' /proc/loadavg)
     ./bench.py --reporter_out csv \
         --no-perf \
         --report_dir "$REPORT_DIR/multi_core" \
