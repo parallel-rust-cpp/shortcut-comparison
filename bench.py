@@ -24,16 +24,23 @@ def get_gflops(n, secs):
 class Reporter:
     supported = ("stdout", "csv")
 
-    def __init__(self, out="stdout", output_path=None):
+    def __init__(self, out="stdout", output_path=None, use_perf=False):
         assert out in self.__class__.supported, "unsupported report format: {}".format(out)
         self.out = out
-        self.fieldnames = ["N (rows)", "time (us)", "instructions", "cycles", "GFLOP/s"]
+        self.use_perf = use_perf
+        if use_perf:
+            self.fieldnames = ["N (rows)", "time (us)", "instructions", "cycles", "GFLOP/s"]
+        else:
+            self.fieldnames = ["N (rows)", "iterations", "time (us)", "GFLOP/s"]
         self.output_path = output_path
 
     def print_row(self, row):
         if self.out == "stdout":
-            insn_per_cycle = row["instructions"]/row["cycles"]
-            print("{:8d}{:12d}{:15d}{:15d}{:10.2f}{:12.2f}".format(*row.values(), insn_per_cycle))
+            if self.use_perf:
+                insn_per_cycle = row["instructions"]/row["cycles"]
+                print("{:8d}{:12d}{:15d}{:15d}{:10.2f}{:12.2f}".format(*row.values(), insn_per_cycle))
+            else:
+                print("{:8d}{:12d}{:15d}{:10.2f}".format(*row.values()))
         elif self.out == "csv":
             with open(self.output_path, "a") as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
@@ -41,7 +48,10 @@ class Reporter:
 
     def print_header(self, clear_file=False):
         if self.out == "stdout":
-            print("{:>8s}{:>12s}{:>15s}{:>15s}{:>10s}{:>12s}".format(*self.fieldnames, "insn/cycle"))
+            if self.use_perf:
+                print("{:>8s}{:>12s}{:>15s}{:>15s}{:>10s}{:>12s}".format(*self.fieldnames, "insn/cycle"))
+            else:
+                print("{:>8s}{:>12s}{:>15s}{:>10s}".format(*self.fieldnames))
         elif self.out == "csv":
             with open(self.output_path, "w" if clear_file else "a") as f:
                 writer = csv.DictWriter(f, fieldnames=self.fieldnames)
@@ -60,27 +70,31 @@ def parse_perf_csv(s):
     ))
 
 
-def run_perf(cmd, input_size, num_threads=None):
+def run(cmd, input_size, no_perf=False, num_threads=None):
     """
     Run given command string with perf-stat and return results in dict.
     """
-    perf_cmd = "perf stat --detailed --detailed --field-separator ,".split(' ')
+    cmd_prefix = ''
+    if not no_perf:
+        cmd_prefix = "perf stat --detailed --detailed --field-separator ,"
     env = None
     if num_threads:
-        env = dict(os.environ.copy(),
-            OMP_NUM_THREADS=str(num_threads),
-            RAYON_NUM_THREADS=str(num_threads))
+        env = dict(os.environ.copy(), OMP_NUM_THREADS=str(num_threads), RAYON_NUM_THREADS=str(num_threads))
     result = subprocess.run(
-        perf_cmd + cmd.split(' '),
+        (cmd_prefix + cmd).split(' '),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         env=env
     )
-    return parse_perf_csv(result.stdout.decode("utf-8"))
+    out = result.stdout.decode("utf-8")
+    return out if no_perf else parse_perf_csv(out)
 
 
-def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=None, reporter_out=None):
-    print_header("Running perf-stat for all implementations", end="\n\n")
+def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=None, reporter_out=None, no_perf=False):
+    if no_perf:
+        print_header("Benchmarking", end="\n\n")
+    else:
+        print_header("Benchmarking with perf-stat", end="\n\n")
     for step_impl in STEP_IMPLEMENTATIONS:
         if impl_filter and not any(step_impl.startswith(prefix) for prefix in impl_filter):
             continue
@@ -90,18 +104,29 @@ def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=Non
             if report_dir:
                 report_name = step_impl[:2] + '.' + reporter_out
                 report_path = os.path.join(report_dir, lang, report_name)
-            reporter = Reporter(reporter_out, report_path)
+            reporter = Reporter(reporter_out, report_path, use_perf=not no_perf)
             reporter.print_header(clear_file=True)
             bench_cmd = os.path.join(build_dir, step_impl + "_" + lang)
             for input_size in input_sizes:
-                bench_args = 'benchmark {} 1'.format(input_size)
-                cmd = ' '.join((CPU_BIND_CMD, bench_cmd, bench_args))
-                for iter_n in range(iterations):
-                    result = run_perf(cmd, input_size, threads)
+                if no_perf:
+                    bench_args = 'benchmark {} {}'.format(input_size, iterations)
+                    cmd = ' '.join((CPU_BIND_CMD, bench_cmd, bench_args))
+                    output = run(cmd, input_size, no_perf=no_perf, num_threads=threads)
+                    result = collections.OrderedDict()
                     result["N (rows)"] = input_size
-                    result.move_to_end("N (rows)", last=False)
+                    result["iterations"] = iterations
+                    result["time (us)"] = int(1e6 * sum(float(line.strip()) for line in output.splitlines()[1:] if line.strip()))
                     result["GFLOP/s"] = get_gflops(input_size, 1e-6 * result["time (us)"])
                     reporter.print_row(result)
+                else:
+                    bench_args = 'benchmark {} 1'.format(input_size)
+                    cmd = ' '.join((CPU_BIND_CMD, bench_cmd, bench_args))
+                    for iter_n in range(iterations):
+                        result = run(cmd, input_size, no_perf=no_perf, num_threads=threads)
+                        result["N (rows)"] = input_size
+                        result.move_to_end("N (rows)", last=False)
+                        result["GFLOP/s"] = get_gflops(input_size, 1e-6 * result["time (us)"])
+                        reporter.print_row(result)
             if report_dir:
                 print("Wrote {} report to {}".format(reporter_out, report_path))
 
@@ -141,6 +166,9 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="Amount of iterations for each input size")
+    parser.add_argument("--no-perf",
+            action='store_true',
+            help="Do not use perf, just benchmark and get the running time and compute gflops heuristic")
     parser.add_argument("--no-cpp",
             action='store_true',
             help="Skip all C++ benchmarks")
@@ -176,7 +204,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
     try:
-        do_benchmark(build_dir, args.iterations, benchmark_langs, args.threads, args.report_dir, args.reporter_out)
+        do_benchmark(build_dir, args.iterations, benchmark_langs, args.threads, args.report_dir, args.reporter_out, args.no_perf)
     except PerfToolException:
         print()
         print_error("Failed to run perf due to low privileges. Consider e.g. decreasing the integer value in /proc/sys/kernel/perf_event_paranoid")
