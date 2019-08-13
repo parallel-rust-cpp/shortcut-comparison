@@ -53,23 +53,23 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // Function: For a row block vd_row_block containing blocksize rows containing vecs_per_row simd-vectors containing vec_width of f32s,
     // compute results for all combinations of vd_row_block and vt_row_block for all row blocks of vt, which is chunked up exactly as vd.
     let step_row_block = |(i, (r_row_block, vd_row_block)): (usize, (&mut [f32], &[__m256]))| {
-        assert_eq!(vd_row_block.len(), blocksize * vecs_per_row);
         // Chunk up vt into blocks exactly as vd
         let vt_row_blocks = vt.chunks(blocksize * vecs_per_row);
         // Compute results for all combinations of row blocks from vd and vt
         for (j, vt_row_block) in vt_row_blocks.enumerate() {
-            assert_eq!(vt_row_block.len(), blocksize * vecs_per_row);
             // Block of 9 simd-vectors containing partial results
             let mut tmp = [simd::m256_infty(); blocksize * blocksize];
+            // Extract all 6 rows from the row blocks
+            let vd_row_0 = vd_row_block[0 * vecs_per_row..1 * vecs_per_row].iter();
+            let vd_row_1 = vd_row_block[1 * vecs_per_row..2 * vecs_per_row].iter();
+            let vd_row_2 = vd_row_block[2 * vecs_per_row..3 * vecs_per_row].iter();
+            let vt_row_0 = vt_row_block[0 * vecs_per_row..1 * vecs_per_row].iter();
+            let vt_row_1 = vt_row_block[1 * vecs_per_row..2 * vecs_per_row].iter();
+            let vt_row_2 = vt_row_block[2 * vecs_per_row..3 * vecs_per_row].iter();
             // Move horizontally, computing 3 x 3 results for each column
-            for col in 0..vecs_per_row {
-                // Load two 'vertical stripes' of simd-vectors
-                let d0 = vd_row_block[0 * vecs_per_row + col];
-                let d1 = vd_row_block[1 * vecs_per_row + col];
-                let d2 = vd_row_block[2 * vecs_per_row + col];
-                let t0 = vt_row_block[0 * vecs_per_row + col];
-                let t1 = vt_row_block[1 * vecs_per_row + col];
-                let t2 = vt_row_block[2 * vecs_per_row + col];
+            // At each iteration, load two 'vertical stripes' of 3 simd-vectors, in total 6 simd-vectors
+            //TODO use some multi-zip macro to flatten tuples
+            for (((((&d0, &t0), &d1), &t1), &d2), &t2) in vd_row_0.zip(vt_row_0).zip(vd_row_1).zip(vt_row_1).zip(vd_row_2).zip(vt_row_2) {
                 // Combine all pairs of simd-vectors from 6 rows to compute 9 results at this column
                 tmp[0] = simd::min(tmp[0], simd::add(d0, t0));
                 tmp[1] = simd::min(tmp[1], simd::add(d0, t1));
