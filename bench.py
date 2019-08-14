@@ -116,7 +116,7 @@ def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=Non
                     result["N (rows)"] = input_size
                     result["iterations"] = iterations
                     result["time (us)"] = int(1e6 * sum(float(line.strip()) for line in output.splitlines()[1:] if line.strip()))
-                    result["GFLOP/s"] = get_gflops(input_size, 1e-6 * result["time (us)"])
+                    result["GFLOP/s"] = get_gflops(input_size, 1e-6 * result["time (us)"] / iterations)
                     reporter.print_row(result)
                 else:
                     bench_args = 'benchmark {} 1'.format(input_size)
