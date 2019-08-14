@@ -59,8 +59,7 @@ if [ $DO_SINGLE_THREAD -ne 0 ]; then
         --report_dir "$REPORT_DIR/single_core" \
         --build_dir $BUILD_DIR \
         --input_size $BENCHMARK_SIZE \
-        --threads 1 \
-        --iterations 10
+        --threads 1
     echo_header "==== SINGLE THREAD BENCHMARK COMPLETE ===="
 fi
 
@@ -81,7 +80,6 @@ if [ $DO_MULTI_THREAD -ne 0 ]; then
         --report_dir "$REPORT_DIR/multi_core" \
         --build_dir $BUILD_DIR \
         --input_size $BENCHMARK_SIZE \
-        --threads $THREADS \
-        --iterations 10
+        --threads $THREADS
     echo_header "==== MULTI THREAD BENCHMARK COMPLETE ===="
 fi

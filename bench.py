@@ -9,6 +9,8 @@ import sys
 from build import print_header, print_error, STEP_IMPLEMENTATIONS
 
 INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
+STEP_ITERATIONS = [1, 2, 5, 10, 15, 15, 20, 20]
+assert len(STEP_ITERATIONS) == len(STEP_IMPLEMENTATIONS)
 
 # Prefix the benchmark command with taskset, binding the process to 4 physical cores
 CPU_BIND_CMD = "taskset --cpu-list 0-3"
@@ -90,7 +92,7 @@ def run(cmd, input_size, no_perf=False, num_threads=None):
     return out if no_perf else parse_perf_csv(out)
 
 
-def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=None, reporter_out=None, no_perf=False):
+def do_benchmark(build_dir, iterations_per_step_impl, benchmark_langs, threads, report_dir=None, reporter_out=None, no_perf=False):
     if no_perf:
         print_header("Benchmarking", end="\n\n")
     else:
@@ -98,6 +100,7 @@ def do_benchmark(build_dir, iterations, benchmark_langs, threads, report_dir=Non
     for step_impl in STEP_IMPLEMENTATIONS:
         if impl_filter and not any(step_impl.startswith(prefix) for prefix in impl_filter):
             continue
+        iterations = iterations_per_step_impl[step_impl]
         for lang in benchmark_langs:
             print_header(lang + ' ' + step_impl)
             report_path = None
@@ -164,7 +167,6 @@ if __name__ == "__main__":
         help="Directory to create reports")
     parser.add_argument("--iterations", "-c",
         type=int,
-        default=1,
         help="Amount of iterations for each input size")
     parser.add_argument("--no-perf",
             action='store_true',
@@ -203,8 +205,13 @@ if __name__ == "__main__":
             print_error("Reporter type 'csv' needs an output directory, please specify one with --report_dir")
             sys.exit(1)
 
+    if args.iterations:
+        iterations = {k: args.iterations for k in STEP_IMPLEMENTATIONS}
+    else:
+        iterations = {k: iterations for k, iterations in zip(STEP_IMPLEMENTATIONS, STEP_ITERATIONS)}
+    print(iterations)
     try:
-        do_benchmark(build_dir, args.iterations, benchmark_langs, args.threads, args.report_dir, args.reporter_out, args.no_perf)
+        do_benchmark(build_dir, iterations, benchmark_langs, args.threads, args.report_dir, args.reporter_out, args.no_perf)
     except PerfToolException:
         print()
         print_error("Failed to run perf due to low privileges. Consider e.g. decreasing the integer value in /proc/sys/kernel/perf_event_paranoid")
