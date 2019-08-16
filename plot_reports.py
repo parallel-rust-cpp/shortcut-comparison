@@ -40,7 +40,7 @@ def parse_data_from_csv(report_path, lang, reduction="mean"):
 
 
 def plot_reports(report_path, metric):
-    fig = plt.figure(figsize=(12, 12))
+    fig = plt.figure(figsize=(12, 9))
     ax = fig.subplots()
 
     index = np.arange(len(implementation_labels))
@@ -91,6 +91,10 @@ if __name__ == "__main__":
     parser.add_argument("--output-path",
         type=str,
         help="Where to write output image. Defaults to plot.svg in the report directory.")
+    parser.add_argument("--type",
+        type=str,
+        default="svg",
+        help="File extension for default output path. Defaults to 'svg'.")
     parser.add_argument("--metric",
         type=str,
         choices=(
@@ -106,7 +110,7 @@ if __name__ == "__main__":
     report_dir = args.csv_report_output_dir
     plot_reports(report_dir, args.metric)
     if not args.output_path:
-        output_img_path = os.path.join(report_dir, "plot.svg")
+        output_img_path = os.path.join(report_dir, "plot." + args.type)
     else:
         output_img_path = args.output_path
 
