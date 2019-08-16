@@ -7,6 +7,7 @@ import os.path
 import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams["svg.fonttype"] = "none"
+plt.rcParams["font.size"] = 26
 
 
 implementation_labels = tuple('v{}'.format(i) for i in range(8))
@@ -39,7 +40,8 @@ def parse_data_from_csv(report_path, lang, reduction="mean"):
 
 
 def plot_reports(report_path, metric):
-    fig, ax = plt.subplots()
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.subplots()
 
     index = np.arange(len(implementation_labels))
     bar_width = 0.35
