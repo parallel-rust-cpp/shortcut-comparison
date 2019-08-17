@@ -9,7 +9,7 @@ import sys
 from build import print_header, print_error, STEP_IMPLEMENTATIONS
 
 INPUT_SIZES = [100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300]
-STEP_ITERATIONS = [1, 2, 5, 10, 15, 15, 20, 20]
+STEP_ITERATIONS = [2, 3, 5, 10, 15, 20, 20, 20]
 assert len(STEP_ITERATIONS) == len(STEP_IMPLEMENTATIONS)
 
 # Prefix the benchmark command with taskset, binding the process to 4 physical cores
@@ -169,14 +169,14 @@ if __name__ == "__main__":
         type=int,
         help="Amount of iterations for each input size")
     parser.add_argument("--no-perf",
-            action='store_true',
-            help="Do not use perf, just benchmark and get the running time and compute gflops heuristic")
+        action='store_true',
+        help="Do not use perf, just benchmark and get the running time and compute gflops heuristic")
     parser.add_argument("--no-cpp",
-            action='store_true',
-            help="Skip all C++ benchmarks")
+        action='store_true',
+        help="Skip all C++ benchmarks")
     parser.add_argument("--no-rust",
-            action='store_true',
-            help="Skip all Rust benchmarks")
+        action='store_true',
+        help="Skip all Rust benchmarks")
 
     args = parser.parse_args()
     build_dir = os.path.abspath(os.path.join(args.build_dir, "bin"))
@@ -209,7 +209,6 @@ if __name__ == "__main__":
         iterations = {k: args.iterations for k in STEP_IMPLEMENTATIONS}
     else:
         iterations = {k: iterations for k, iterations in zip(STEP_IMPLEMENTATIONS, STEP_ITERATIONS)}
-    print(iterations)
     try:
         do_benchmark(build_dir, iterations, benchmark_langs, args.threads, args.report_dir, args.reporter_out, args.no_perf)
     except PerfToolException:
