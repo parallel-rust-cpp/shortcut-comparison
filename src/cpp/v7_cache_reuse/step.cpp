@@ -68,9 +68,6 @@ void step(float* r, const float* d_, int n) {
 
             // Compute partial results for this column chunk
             for (int k = col_begin; k < col_end; ++k) {
-                constexpr int PF = 20;
-                __builtin_prefetch(&vd[n*ia + k + PF]);
-                __builtin_prefetch(&vt[n*ja + k + PF]);
                 float8_t a000 = vd[n*ia + k];
                 float8_t b000 = vt[n*ja + k];
                 float8_t a100 = swap4(a000);
