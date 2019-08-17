@@ -87,9 +87,9 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             let (_, i, j) = row_pairs[z];
             // Copy results from previous pass over previous stripe
             assert_eq!(partial_block.len(), vec_width);
-            let mut tmp = partial_block.to_owned();
-            assert_eq!(tmp.len(), vec_width);
-            // Load current stripe of row i and column j
+            let mut tmp = [simd::m256_infty(); vec_width];
+            tmp.copy_from_slice(&partial_block);
+            // Get slices over current stripes of row i and column j
             let vd_stripe = &vd[(n * i + col_begin)..(n * i + col_end)];
             let vt_stripe = &vt[(n * j + col_begin)..(n * j + col_end)];
             for (&d0, &t0) in vd_stripe.iter().zip(vt_stripe) {
