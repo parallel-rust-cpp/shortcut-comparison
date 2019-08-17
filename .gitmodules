@@ -1,3 +1,0 @@
-[submodule "wiki"]
-	path = wiki
-	url = git@github.com:matiaslindgren/shortcut-comparison.wiki.git
