@@ -6,8 +6,11 @@ import os.path
 
 import numpy as np
 import matplotlib.pyplot as plt
-plt.rcParams["svg.fonttype"] = "none"
-plt.rcParams["font.size"] = 26
+plt.rcParams.update({
+    "svg.fonttype": "none",
+    "font.family": "sans-serif",
+    "font.size": 30,
+})
 
 
 implementation_labels = tuple('v{}'.format(i) for i in range(8))
@@ -39,8 +42,8 @@ def parse_data_from_csv(report_path, lang, reduction="mean"):
     return data
 
 
-def plot_reports(report_path, metric):
-    fig = plt.figure(figsize=(12, 9))
+def plot_reports(title, report_path, metric):
+    fig = plt.figure(figsize=(12, 12))
     ax = fig.subplots()
 
     index = np.arange(len(implementation_labels))
@@ -77,7 +80,8 @@ def plot_reports(report_path, metric):
     ax.set_xlabel('Version')
     ax.set_xticks(index + bar_width / 2)
     ax.set_xticklabels(implementation_labels)
-    ax.set_title("Instruction throughput (more is better)")
+    if title is not None:
+        ax.set_title(title)
     ax.legend()
 
     fig.tight_layout()
@@ -95,6 +99,7 @@ if __name__ == "__main__":
         type=str,
         default="svg",
         help="File extension for default output path. Defaults to 'svg'.")
+    parser.add_argument("--title", type=str)
     parser.add_argument("--metric",
         type=str,
         choices=(
@@ -108,7 +113,7 @@ if __name__ == "__main__":
         help="Metric to be used on the vertical axis. Defaults to GFLOP per second.")
     args = parser.parse_args()
     report_dir = args.csv_report_output_dir
-    plot_reports(report_dir, args.metric)
+    plot_reports(args.title, report_dir, args.metric)
     if not args.output_path:
         output_img_path = os.path.join(report_dir, "plot." + args.type)
     else:
