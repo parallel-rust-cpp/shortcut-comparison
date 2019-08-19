@@ -2,7 +2,7 @@
 pub mod simd;
 pub mod timer;
 
-/// Macro for creating an named extern C wrapper for Rust 'step' function
+/// Macro for creating a named, extern C wrapper for a Rust 'step' function
 #[macro_export]
 macro_rules! create_extern_c_wrapper {
     ($extern_func:ident, $wrapped_func:ident) => {
