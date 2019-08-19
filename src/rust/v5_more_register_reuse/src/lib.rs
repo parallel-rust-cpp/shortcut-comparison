@@ -1,12 +1,11 @@
+use tools::create_extern_c_wrapper;
+use tools::simd;
+use std::arch::x86_64::__m256;
+
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
 #[cfg(not(feature = "no-multi-thread"))]
 use rayon::prelude::*;
-
-use std::arch::x86_64::__m256;
-
-extern crate tools;
-use tools::simd;
 
 
 #[inline]
@@ -105,14 +104,4 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
 }
 
 
-#[no_mangle]
-pub unsafe extern "C" fn step(r_raw: *mut f32, d_raw: *const f32, n: i32) {
-    let result = std::panic::catch_unwind(|| {
-        let d = std::slice::from_raw_parts(d_raw, (n * n) as usize);
-        let mut r = std::slice::from_raw_parts_mut(r_raw, (n * n) as usize);
-        _step(&mut r, d, n as usize);
-    });
-    if result.is_err() {
-        eprintln!("error: rust panicked");
-    }
-}
+create_extern_c_wrapper!(step, _step);

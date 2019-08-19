@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 rayon = "1.*"
+tools = { path = "../tools" }
 
 [lib]
 name = "v2_instr_level_parallelism"

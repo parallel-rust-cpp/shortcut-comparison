@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 rayon = "1.*"
+tools = { path = "../tools" }
 
 [lib]
 name = "v1_linear_reading"
