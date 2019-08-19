@@ -57,7 +57,16 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         // Compute results for all combinations of row blocks from vd and vt
         for (j, vt_row_block) in vt_row_blocks.enumerate() {
             // Block of 9 simd-vectors containing partial results
-            let mut tmp = [simd::m256_infty(); blocksize * blocksize];
+            //let mut tmp = [simd::m256_infty(); blocksize * blocksize];
+            let mut tmp0 = simd::m256_infty();
+            let mut tmp1 = simd::m256_infty();
+            let mut tmp2 = simd::m256_infty();
+            let mut tmp3 = simd::m256_infty();
+            let mut tmp4 = simd::m256_infty();
+            let mut tmp5 = simd::m256_infty();
+            let mut tmp6 = simd::m256_infty();
+            let mut tmp7 = simd::m256_infty();
+            let mut tmp8 = simd::m256_infty();
             // Extract all 6 rows from the row blocks
             let vd_row_0 = vd_row_block[0 * vecs_per_row..1 * vecs_per_row].iter();
             let vd_row_1 = vd_row_block[1 * vecs_per_row..2 * vecs_per_row].iter();
@@ -70,16 +79,17 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             //TODO use some multi-zip macro to flatten tuples
             for (((((&d0, &t0), &d1), &t1), &d2), &t2) in vd_row_0.zip(vt_row_0).zip(vd_row_1).zip(vt_row_1).zip(vd_row_2).zip(vt_row_2) {
                 // Combine all pairs of simd-vectors from 6 rows to compute 9 results at this column
-                tmp[0] = simd::min(tmp[0], simd::add(d0, t0));
-                tmp[1] = simd::min(tmp[1], simd::add(d0, t1));
-                tmp[2] = simd::min(tmp[2], simd::add(d0, t2));
-                tmp[3] = simd::min(tmp[3], simd::add(d1, t0));
-                tmp[4] = simd::min(tmp[4], simd::add(d1, t1));
-                tmp[5] = simd::min(tmp[5], simd::add(d1, t2));
-                tmp[6] = simd::min(tmp[6], simd::add(d2, t0));
-                tmp[7] = simd::min(tmp[7], simd::add(d2, t1));
-                tmp[8] = simd::min(tmp[8], simd::add(d2, t2));
+                tmp0 = simd::min(tmp0, simd::add(d0, t0));
+                tmp1 = simd::min(tmp1, simd::add(d0, t1));
+                tmp2 = simd::min(tmp2, simd::add(d0, t2));
+                tmp3 = simd::min(tmp3, simd::add(d1, t0));
+                tmp4 = simd::min(tmp4, simd::add(d1, t1));
+                tmp5 = simd::min(tmp5, simd::add(d1, t2));
+                tmp6 = simd::min(tmp6, simd::add(d2, t0));
+                tmp7 = simd::min(tmp7, simd::add(d2, t1));
+                tmp8 = simd::min(tmp8, simd::add(d2, t2));
             }
+            let tmp = [tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8];
             // Set 9 final results for all combinations of 3 rows starting at i and 3 rows starting at j
             for (block_i, (r_row, tmp_row)) in r_row_block.chunks_mut(n).zip(tmp.chunks(blocksize)).enumerate() {
                 assert_eq!(r_row.len(), n);
