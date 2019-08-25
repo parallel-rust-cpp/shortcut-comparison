@@ -25,7 +25,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     t.chunks_mut(n)
         .enumerate()
         .for_each(transpose_row);
-    // Function: for some row i in d (d_row) and all rows t (t_rows), compute all n results into a row in r (r_row)
+    // Function: for some row i in d (d_row) and all rows t (t_rows), compute n results into a row in r (r_row)
     let step_row = |(r_row, d_row): (&mut [f32], &[f32])| {
         // t is immutable, so we can share it in concurrent invocations of this function
         let t_rows = t.chunks(n);
