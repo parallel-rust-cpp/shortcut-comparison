@@ -8,7 +8,7 @@ use rayon::prelude::*; // Parallel chunks iterator
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
-    // Function: for some row i and column j in d, compute all results for a row i in r (r_row)
+    // Function: for some row i and every column j in d, compute n results into r (r_row)
     let step_row = |(i, r_row): (usize, &mut [f32])| {
         for (j, res) in r_row.iter_mut().enumerate() {
             let mut v = std::f32::INFINITY;
