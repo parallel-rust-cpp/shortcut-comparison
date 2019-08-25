@@ -33,8 +33,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .zip(vt.chunks_mut(n_padded))
         .enumerate()
         .for_each(preprocess_row);
-    // Function: for some row i in vd (vd_row) and all rows j in vt (vt_rows),
-    // compute all results for row i in r (r_row)
+    // Function: for some row in vd (vd_row) and all rows in vt (vt_rows),
+    // compute all results for a row in r (r_row), corresponding to the row index of vd_row.
     let step_row = |(r_row, vd_row): (&mut [f32], &[f32])| {
         let vt_rows = vt.chunks(n_padded);
         // Length of a zipped iterator is the length of the shorter iterator in the zip pair so this never exceeds n

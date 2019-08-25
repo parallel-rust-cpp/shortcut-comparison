@@ -12,24 +12,23 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
-    #[allow(non_upper_case_globals)]
-    // We are using 256-bit single precision float vectors (f32 elements) so this will be equal to 8
-    const vec_width: usize = simd::M256_LENGTH;
-    let vecs_per_row = (n + vec_width - 1) / vec_width;
+    // How many m256 vectors (with 8 f32s each) we need to pack all elements from a row of d
+    let vecs_per_row = (n + simd::M256_LENGTH - 1) / simd::M256_LENGTH;
     // Pack d and its transpose into m256 vectors row-wise, each vector containing 8 f32::INFINITYs
     let mut vd = std::vec![simd::m256_infty(); n * vecs_per_row];
     let mut vt = std::vec![simd::m256_infty(); n * vecs_per_row];
-    // Function: for one row of simd-vectors in vd and vt, pack the rows with values from d,
+    // Function: for one row of SIMD-vectors in vd and vt, copy values from from d,
     // such that vd contains values from row 'row' in d and vt contains values from column 'row' in d
     let preprocess_row = |(row, (vd_row, vt_row)): (usize, (&mut [__m256], &mut [__m256]))| {
         // For every vector (indexed by col) in vt_row and vd_row for given row in d (indexed by row and d_col)
         for (col, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
-            // Buffers containing 8 elements for constructing SIMD vectors
-            let mut d_tmp = [std::f32::INFINITY; vec_width];
-            let mut t_tmp = [std::f32::INFINITY; vec_width];
+            // Buffers containing 8 elements, which are converted to SIMD vectors
+            let mut d_tmp = [std::f32::INFINITY; simd::M256_LENGTH];
+            let mut t_tmp = [std::f32::INFINITY; simd::M256_LENGTH];
             // Iterate over 8 elements to fill the buffers
             for (vec_i, (x, y)) in d_tmp.iter_mut().zip(t_tmp.iter_mut()).enumerate() {
-                let d_col = col * vec_width + vec_i;
+                // Offset by SIMD vector length to get correct index mapping to d
+                let d_col = col * simd::M256_LENGTH + vec_i;
                 if d_col < n {
                     *x = d[n * row + d_col];
                     *y = d[n * d_col + row];
@@ -40,7 +39,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             *vy = simd::from_slice(&t_tmp);
         }
     };
-    // Now perform the actual preprocessing one row at a time
+    // Perform preprocessing in parallel for each row pair
     #[cfg(not(feature = "no-multi-thread"))]
     vd.par_chunks_mut(vecs_per_row)
         .zip(vt.par_chunks_mut(vecs_per_row))

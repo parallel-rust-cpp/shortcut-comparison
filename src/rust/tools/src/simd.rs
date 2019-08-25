@@ -22,7 +22,7 @@ pub fn min(v: __m256, w: __m256) -> __m256 {
     unsafe { _mm256_min_ps(v, w) }
 }
 
-/// Extract the lowest 32 bits of 256-bit vector as a float
+/// Extract the lowest 32 bits of a 256-bit vector as a float
 #[inline]
 pub fn lowestf32(v: __m256) -> f32 {
     unsafe { _mm256_cvtss_f32(v) }
@@ -31,18 +31,19 @@ pub fn lowestf32(v: __m256) -> f32 {
 /// Create a 256-bit vector from a f32 slice of length 8
 #[inline]
 pub fn from_slice(s: &[f32]) -> __m256 {
+    assert_eq!(s.len(), 8);
     unsafe { _mm256_set_ps(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]) }
 }
 
-/// Permute 1, 2, or 4 element ranges with their neighbors.
+/// Permute 1, 2, or 4 wide chunks with adjacent chunks
 /// E.g.
 /// swap([0, 1, 2, 3, 4, 5, 6, 7], 1) == [1, 0, 3, 2, 5, 4, 7, 6]
 /// swap([0, 1, 2, 3, 4, 5, 6, 7], 2) == [2, 3, 0, 1, 6, 7, 4, 5]
 /// swap([0, 1, 2, 3, 4, 5, 6, 7], 4) == [4, 5, 6, 7, 0, 1, 2, 3]
 ///
 /// To make sense of the 8-bit shuffle control, read it in binary from right to left
-/// e.g. for i = 1, control is 10110001.
-/// Reading from right to left in 2 bit chunks we get (1, 0, 3, 2),
+/// e.g. for width = 1, control is 10_11_00_01.
+/// Reading from right to left in 2 bit chunks we get (1, 0, 3, 2) for the 1st 128-bit lane,
 /// and (5, 4, 7, 6) for the 2nd 128-bit lane.
 ///
 #[inline]
