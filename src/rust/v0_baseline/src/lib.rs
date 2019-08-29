@@ -27,7 +27,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(step_row);
     #[cfg(feature = "no-multi-thread")] // Process all rows in the main thread
-    r.chunks_mut(n)
+    r.chunks_exact_mut(n)
         .enumerate()
         .for_each(step_row);
 }

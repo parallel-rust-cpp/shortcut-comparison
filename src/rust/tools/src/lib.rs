@@ -2,7 +2,7 @@
 pub mod simd;
 pub mod timer;
 
-/// Macro for wrapping a Rust function inside an extern C 'step'-function
+/// Extern C-ABI wrapper for moving data by raw pointers to a Rust 'step'-implementation
 #[macro_export]
 macro_rules! create_extern_c_wrapper {
     ($extern_func:ident, $wrapped_func:ident) => {

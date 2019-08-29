@@ -45,8 +45,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(preprocess_row);
     #[cfg(feature = "no-multi-thread")]
-    vd.chunks_mut(n)
-        .zip(vt.chunks_mut(n))
+    vd.chunks_exact_mut(n)
+        .zip(vt.chunks_exact_mut(n))
         .enumerate()
         .for_each(preprocess_row);
 
@@ -68,7 +68,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     }
     #[cfg(feature = "no-multi-thread")]
     {
-        row_pairs.chunks_mut(vecs_per_col).enumerate().for_each(interleave_row);
+        row_pairs.chunks_exact_mut(vecs_per_col).enumerate().for_each(interleave_row);
         row_pairs.sort_unstable();
     }
 
@@ -117,7 +117,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             .for_each(step_partial_block);
         #[cfg(feature = "no-multi-thread")]
         partial_results
-            .chunks_mut(vec_width)
+            .chunks_exact_mut(vec_width)
             .enumerate()
             .for_each(step_partial_block);
     }
@@ -129,7 +129,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         tmp[3] = simd::swap(tmp[3], 1);
         tmp[5] = simd::swap(tmp[5], 1);
         tmp[7] = simd::swap(tmp[7], 1);
-        for (block_i, rz_block) in rz_block_pair.chunks_mut(vec_width).enumerate() {
+        for (block_i, rz_block) in rz_block_pair.chunks_exact_mut(vec_width).enumerate() {
             for (block_j, res_z) in rz_block.iter_mut().enumerate() {
                 let res_i = block_j + i * vec_width;
                 let res_j = block_i + j * vec_width;
@@ -148,8 +148,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(set_z_order_result_block);
     #[cfg(feature = "no-multi-thread")]
-    rz.chunks_mut(vec_width * vec_width)
-        .zip(partial_results.chunks_mut(vec_width))
+    rz.chunks_exact_mut(vec_width * vec_width)
+        .zip(partial_results.chunks_exact_mut(vec_width))
         .enumerate()
         .for_each(set_z_order_result_block);
 
@@ -157,8 +157,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // then the sequential step below would become redundant
 
     // Finally, copy Z-order results from rz into r in proper order
-    for (rz_block_pair, (_, i, j)) in rz.chunks(vec_width * vec_width).zip(row_pairs) {
-        for (block_i, rz_block) in rz_block_pair.chunks(vec_width).enumerate() {
+    for (rz_block_pair, (_, i, j)) in rz.chunks_exact(vec_width * vec_width).zip(row_pairs) {
+        for (block_i, rz_block) in rz_block_pair.chunks_exact(vec_width).enumerate() {
             for (block_j, &res_z) in rz_block.iter().enumerate() {
                 let res_i = block_j + i * vec_width;
                 let res_j = block_i + j * vec_width;

@@ -44,8 +44,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(preprocess_row);
     #[cfg(feature = "no-multi-thread")]
-    vd.chunks_mut(vecs_per_row)
-        .zip(vt.chunks_mut(vecs_per_row))
+    vd.chunks_exact_mut(vecs_per_row)
+        .zip(vt.chunks_exact_mut(vecs_per_row))
         .enumerate()
         .for_each(preprocess_row);
 
@@ -53,7 +53,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // compute results for all combinations of vd_row_block and vt_row_block for all row blocks of vt, which is chunked up exactly as vd.
     let step_row_block = |(i, (r_row_block, vd_row_block)): (usize, (&mut [f32], &[__m256]))| {
         // Chunk up vt into blocks exactly as vd
-        let vt_row_blocks = vt.chunks(blocksize * vecs_per_row);
+        let vt_row_blocks = vt.chunks_exact(blocksize * vecs_per_row);
         // Compute results for all combinations of row blocks from vd and vt
         for (j, vt_row_block) in vt_row_blocks.enumerate() {
             // Block of 9 simd-vectors containing partial results
@@ -91,7 +91,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
             let tmp = [tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8];
             // Set 9 final results for all combinations of 3 rows starting at i and 3 rows starting at j
-            for (block_i, (r_row, tmp_row)) in r_row_block.chunks_mut(n).zip(tmp.chunks(blocksize)).enumerate() {
+            for (block_i, (r_row, tmp_row)) in r_row_block.chunks_exact_mut(n).zip(tmp.chunks_exact(blocksize)).enumerate() {
                 assert_eq!(r_row.len(), n);
                 for (block_j, tmp_res) in tmp_row.iter().enumerate() {
                     let res_i = i * blocksize + block_i;
@@ -111,8 +111,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(step_row_block);
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_mut(blocksize * n)
-        .zip(vd.chunks(blocksize * vecs_per_row))
+    r.chunks_exact_mut(blocksize * n)
+        .zip(vd.chunks_exact(blocksize * vecs_per_row))
         .enumerate()
         .for_each(step_row_block);
 }

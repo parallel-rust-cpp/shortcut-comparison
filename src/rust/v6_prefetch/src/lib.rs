@@ -37,8 +37,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(preprocess_row);
     #[cfg(feature = "no-multi-thread")]
-    vd.chunks_mut(n)
-        .zip(vt.chunks_mut(n))
+    vd.chunks_exact_mut(n)
+        .zip(vt.chunks_exact_mut(n))
         .enumerate()
         .for_each(preprocess_row);
 
@@ -49,7 +49,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         // Create raw pointers for prefetching
         let vd_ptr = vd.as_ptr();
         let vt_ptr = vt.as_ptr();
-        for (j, vt_row) in vt.chunks(n).enumerate() {
+        for (j, vt_row) in vt.chunks_exact(n).enumerate() {
             assert_eq!(vt_row.len(), n);
             let mut tmp = [simd::m256_infty(); vec_width];
             for (col, (&d0, &t0)) in vd_row.iter().zip(vt_row).enumerate() {
@@ -73,7 +73,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             tmp[5] = simd::swap(tmp[5], 1);
             tmp[7] = simd::swap(tmp[7], 1);
             for block_i in 0..vec_width {
-                for (block_j, r_row) in r_row_block.chunks_mut(n).enumerate() {
+                for (block_j, r_row) in r_row_block.chunks_exact_mut(n).enumerate() {
                     assert_eq!(r_row.len(), n);
                     let res_i = block_j + i * vec_width;
                     let res_j = block_i + j * vec_width;
@@ -92,8 +92,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(step_row);
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_mut(vec_width * n)
-        .zip(vd.chunks(n))
+    r.chunks_exact_mut(vec_width * n)
+        .zip(vd.chunks_exact(n))
         .enumerate()
         .for_each(step_row);
 }
