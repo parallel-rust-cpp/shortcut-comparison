@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <chrono>
-#include <iostream>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
+#include <iterator>
 #include <random>
 #include <string>
 #include <vector>
@@ -26,6 +28,9 @@ void benchmark(const unsigned n) noexcept {
 
     const std::chrono::duration<float> delta_seconds = time_end - time_start;
     std::cout << std::setprecision(7) << delta_seconds.count() << std::endl;
+    // Do nothing with the results explicitly, so that the compiler will not optimize away something
+    std::ofstream outf("/dev/null");
+    std::copy(result.begin(), result.end(), std::ostream_iterator<float>(outf, ","));
 }
 
 void test(const unsigned n) noexcept {
