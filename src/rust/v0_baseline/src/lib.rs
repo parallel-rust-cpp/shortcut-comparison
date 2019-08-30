@@ -8,6 +8,7 @@ use rayon::prelude::*; // Parallel chunks iterator
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
+    // ANCHOR: step_row
     // Function: for some row i and every column j in d, compute n results into r (r_row)
     let step_row = |(i, r_row): (usize, &mut [f32])| {
         for (j, res) in r_row.iter_mut().enumerate() {
@@ -16,20 +17,29 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 let x = d[n*i + k];
                 let y = d[n*k + j];
                 let z = x + y;
-                v = if z < v { z } else { v };
+                v = v.min(z);
             }
             *res = v;
         }
     };
+    // ANCHOR_END: step_row
+    // ANCHOR: chunks
     // Partition r into slices, each containing a single row and apply the function on the rows
     #[cfg(not(feature = "no-multi-thread"))] // Process each row as a separate task in parallel
+    //// ANCHOR: par_chunks
     r.par_chunks_mut(n)
         .enumerate()
         .for_each(step_row);
+    //// ANCHOR_END: par_chunks
     #[cfg(feature = "no-multi-thread")] // Process all rows in the main thread
+    //// ANCHOR: seq_chunks
     r.chunks_exact_mut(n)
         .enumerate()
         .for_each(step_row);
+    //// ANCHOR_END: seq_chunks
+    // ANCHOR_END: chunks
 }
 
+// ANCHOR: extern_macro_call
 create_extern_c_wrapper!(step, _step);
+// ANCHOR_END: extern_macro_call

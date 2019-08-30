@@ -8,6 +8,7 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
+    // ANCHOR: preprocess
     const BLOCK_SIZE: usize = 4;
     let blocks_per_row = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
     let n_padded = blocks_per_row * BLOCK_SIZE;
@@ -24,16 +25,20 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     };
     // Partition vd and vt into rows, apply preprocessing in parallel for each row pair
+    // ANCHOR_END: preprocess
     #[cfg(not(feature = "no-multi-thread"))]
+    // ANCHOR: preprocess_apply
     vd.par_chunks_mut(n_padded)
         .zip(vt.par_chunks_mut(n_padded))
         .enumerate()
         .for_each(preprocess_row);
+    // ANCHOR_END: preprocess_apply
     #[cfg(feature = "no-multi-thread")]
     vd.chunks_exact_mut(n_padded)
         .zip(vt.chunks_exact_mut(n_padded))
         .enumerate()
         .for_each(preprocess_row);
+    // ANCHOR: step_row
     // Function: for some row in vd (vd_row) and all rows in vt (vt_rows),
     // compute all results for a row in r (r_row), corresponding to the row index of vd_row.
     let step_row = |(r_row, vd_row): (&mut [f32], &[f32])| {
@@ -61,10 +66,13 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             *res = block.iter().fold(std::f32::INFINITY, |acc, &x| if x < acc { x } else { acc });
         }
     };
+    // ANCHOR_END: step_row
     #[cfg(not(feature = "no-multi-thread"))]
+    // ANCHOR: step_row_apply
     r.par_chunks_mut(n)
         .zip(vd.par_chunks(n_padded))
         .for_each(step_row);
+    // ANCHOR_END: step_row_apply
     #[cfg(feature = "no-multi-thread")]
     r.chunks_exact_mut(n)
         .zip(vd.chunks_exact(n_padded))

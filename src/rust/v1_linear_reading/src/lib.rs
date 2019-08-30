@@ -8,6 +8,7 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
+    // ANCHOR: transpose
     // Transpose of d
     let mut t = vec![0.0; n * n];
     // Function: for some column j in d, copy all elements of that column into row i in t (t_row)
@@ -17,14 +18,18 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     };
     // Copy all columns of d into rows of t in parallel
+    // ANCHOR_END: transpose
     #[cfg(not(feature = "no-multi-thread"))]
+    // ANCHOR: transpose_apply
     t.par_chunks_mut(n)
         .enumerate()
         .for_each(transpose_row);
+    // ANCHOR_END: transpose_apply
     #[cfg(feature = "no-multi-thread")]
     t.chunks_exact_mut(n)
         .enumerate()
         .for_each(transpose_row);
+    // ANCHOR: step_row
     // Function: for some row i in d (d_row) and all rows t (t_rows), compute n results into a row in r (r_row)
     let step_row = |(r_row, d_row): (&mut [f32], &[f32])| {
         // t is immutable, so we can share it in concurrent invocations of this function
@@ -38,11 +43,15 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             *res = v;
         }
     };
-    // Partition r and d into slices, each containing a single row of r and d, and apply the function on the row pairs
+    // Partition r and d into slices, each containing a single row of r and d,
+    // and apply the function on the row pairs
+    // ANCHOR_END: step_row
     #[cfg(not(feature = "no-multi-thread"))]
+    // ANCHOR: step_row_apply
     r.par_chunks_mut(n)
         .zip(d.par_chunks(n))
         .for_each(step_row);
+    // ANCHOR_END: step_row_apply
     #[cfg(feature = "no-multi-thread")]
     r.chunks_exact_mut(n)
         .zip(d.chunks_exact(n))

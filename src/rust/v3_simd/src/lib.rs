@@ -12,6 +12,7 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
+    // ANCHOR: preprocess
     // How many __m256 vectors we need for all elements from a row or column of d
     let vecs_per_row = (n + simd::M256_LENGTH - 1) / simd::M256_LENGTH;
     // All rows and columns d packed into __m256 vectors, each initially filled with 8 f32::INFINITYs
@@ -40,16 +41,20 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     };
     // Fill rows of vd and vt in parallel one pair of rows at a time
+    // ANCHOR_END: preprocess
     #[cfg(not(feature = "no-multi-thread"))]
+    // ANCHOR: preprocess_apply
     vd.par_chunks_mut(vecs_per_row)
         .zip(vt.par_chunks_mut(vecs_per_row))
         .enumerate()
         .for_each(preprocess_row);
+    // ANCHOR_END: preprocess_apply
     #[cfg(feature = "no-multi-thread")]
     vd.chunks_exact_mut(vecs_per_row)
         .zip(vt.chunks_exact_mut(vecs_per_row))
         .enumerate()
         .for_each(preprocess_row);
+    // ANCHOR: step_row
     // Function: for a row of __m256 elements from vd, compute a row of f32 results into r
     let step_row = |(r_row, vd_row): (&mut [f32], &[__m256])| {
         let vt_rows = vt.chunks_exact(vecs_per_row);
@@ -61,10 +66,13 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             *res = simd::horizontal_min(tmp);
         }
     };
+    // ANCHOR_END: step_row
     #[cfg(not(feature = "no-multi-thread"))]
+    // ANCHOR: step_row_apply
     r.par_chunks_mut(n)
         .zip(vd.par_chunks(vecs_per_row))
         .for_each(step_row);
+    // ANCHOR_END: step_row_apply
     #[cfg(feature = "no-multi-thread")]
     r.chunks_exact_mut(n)
         .zip(vd.chunks_exact(vecs_per_row))
