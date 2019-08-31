@@ -1,8 +1,4 @@
-use tools::create_extern_c_wrapper;
-// Custom SIMD helpers
-use tools::simd;
-// f32 SIMD vector containing 8 elements
-use std::arch::x86_64::__m256;
+use tools::{create_extern_c_wrapper, min, simd, simd::f32x8};
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
@@ -12,32 +8,39 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
+    // ANCHOR: init
+    // How many f32x8 vectors we need for all elements from a row or column of d
+    let vecs_per_row = (n + simd::f32x8_LENGTH - 1) / simd::f32x8_LENGTH;
+    // All rows and columns d packed into f32x8 vectors,
+    // each initially filled with 8 f32::INFINITYs
+    let mut vd = std::vec![simd::f32x8_infty(); n * vecs_per_row];
+    let mut vt = std::vec![simd::f32x8_infty(); n * vecs_per_row];
+    // ANCHOR_END: init
     // ANCHOR: preprocess
-    // How many __m256 vectors we need for all elements from a row or column of d
-    let vecs_per_row = (n + simd::M256_LENGTH - 1) / simd::M256_LENGTH;
-    // All rows and columns d packed into __m256 vectors, each initially filled with 8 f32::INFINITYs
-    let mut vd = std::vec![simd::m256_infty(); n * vecs_per_row];
-    let mut vt = std::vec![simd::m256_infty(); n * vecs_per_row];
-    // Function: for one row of __m256 vectors in vd and vt,
-    // copy all elements from row i in d into vd and all elements from column i in d into vt
-    let preprocess_row = |(i, (vd_row, vt_row)): (usize, (&mut [__m256], &mut [__m256]))| {
-        // For every vector (indexed by j) in vt_row and vd_row for given row in d (indexed by i and d_j)
-        for (j, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
-            // Temporary buffers for elements of two __m256s
-            let mut d_tmp = [std::f32::INFINITY; simd::M256_LENGTH];
-            let mut t_tmp = [std::f32::INFINITY; simd::M256_LENGTH];
+    // Function: for one row of f32x8 vectors in vd and one row of f32x8 vectors in vt,
+    // copy all elements from row 'i' in d, packed into f32x8 vectors, into row 'i' of vd (vd_row),
+    // and
+    // copy all elements from column 'i' in d, packed into f32x8 vectors, into row 'i' of vt (vt_row)
+    let pack_simd_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
+        // For every SIMD vector at row 'i', column 'jv' in vt and vd
+        for (jv, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
+            // Temporary buffers for f32 elements of two f32x8s
+            let mut vx_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
+            let mut vy_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
             // Iterate over 8 elements to fill the buffers
-            for (b, (x, y)) in d_tmp.iter_mut().zip(t_tmp.iter_mut()).enumerate() {
+            for (b, (x, y)) in vx_tmp.iter_mut().zip(vy_tmp.iter_mut()).enumerate() {
                 // Offset by 8 elements to get correct index mapping of j to d
-                let d_j = j * simd::M256_LENGTH + b;
-                if d_j < n {
-                    *x = d[n * i + d_j];
-                    *y = d[n * d_j + i];
+                let j = jv * simd::f32x8_LENGTH + b;
+                if i < n && j < n {
+                    *x = d[n * i + j];
+                    *y = d[n * j + i];
                 }
             }
-            // Initialize __m256 vectors from buffer contents and assign them into the std::vec::Vec containers
-            *vx = simd::from_slice(&d_tmp);
-            *vy = simd::from_slice(&t_tmp);
+            // Initialize f32x8 vectors from buffer contents and assign them into the std::vec::Vec containers
+            *vx = simd::from_slice(&vx_tmp);
+            *vy = simd::from_slice(&vy_tmp);
+            simd::assert_aligned(vx);
+            simd::assert_aligned(vy);
         }
     };
     // Fill rows of vd and vt in parallel one pair of rows at a time
@@ -47,19 +50,19 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     vd.par_chunks_mut(vecs_per_row)
         .zip(vt.par_chunks_mut(vecs_per_row))
         .enumerate()
-        .for_each(preprocess_row);
+        .for_each(pack_simd_row);
     // ANCHOR_END: preprocess_apply
     #[cfg(feature = "no-multi-thread")]
     vd.chunks_mut(vecs_per_row)
         .zip(vt.chunks_mut(vecs_per_row))
         .enumerate()
-        .for_each(preprocess_row);
+        .for_each(pack_simd_row);
     // ANCHOR: step_row
-    // Function: for a row of __m256 elements from vd, compute a row of f32 results into r
-    let step_row = |(r_row, vd_row): (&mut [f32], &[__m256])| {
+    // Function: for a row of f32x8 elements from vd, compute a row of f32 results into r
+    let step_row = |(r_row, vd_row): (&mut [f32], &[f32x8])| {
         let vt_rows = vt.chunks_exact(vecs_per_row);
         for (res, vt_row) in r_row.iter_mut().zip(vt_rows) {
-            let mut tmp = simd::m256_infty();
+            let mut tmp = simd::f32x8_infty();
             for (&x, &y) in vd_row.iter().zip(vt_row) {
                 tmp = simd::min(tmp, simd::add(x, y));
             }

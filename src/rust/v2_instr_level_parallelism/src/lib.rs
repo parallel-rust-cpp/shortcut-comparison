@@ -1,4 +1,4 @@
-use tools::create_extern_c_wrapper;
+use tools::{create_extern_c_wrapper, min};
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
@@ -15,12 +15,12 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // d and transpose of d with extra room at the end of each row, both initially filled with f32::INFINITY
     let mut vd = vec![std::f32::INFINITY; n_padded * n];
     let mut vt = vec![std::f32::INFINITY; n_padded * n];
-    // Function: for one row of vd and vt, copy a row at 'row' of d into vd and column at 'row' of d into vt
-    let preprocess_row = |(row, (vd_row, vt_row)): (usize, (&mut [f32], &mut [f32]))| {
-        for (col, (x, y)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
-            if row < n && col < n {
-                *x = d[n*row + col];
-                *y = d[n*col + row];
+    // Function: for one row of vd and vt, copy a row at 'i' of d into vd and column at 'i' of d into vt
+    let preprocess_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32], &mut [f32]))| {
+        for (j, (x, y)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
+            if i < n && j < n {
+                *x = d[n*i + j];
+                *y = d[n*j + i];
             }
         }
     };
@@ -58,12 +58,11 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 assert_eq!(vt_block.len(), BLOCK_SIZE);
                 for i in 0..BLOCK_SIZE {
                     let z = vd_block[i] + vt_block[i];
-                    let b = block[i];
-                    block[i] = if z < b { z } else { b };
+                    block[i] = min(block[i], z);
                 }
             }
             // Fold 4 intermediate values into a single minimum and assign to final result
-            *res = block.iter().fold(std::f32::INFINITY, |acc, &x| if x < acc { x } else { acc });
+            *res = block.iter().fold(std::f32::INFINITY, |acc, &x| min(acc, x));
         }
     };
     // ANCHOR_END: step_row

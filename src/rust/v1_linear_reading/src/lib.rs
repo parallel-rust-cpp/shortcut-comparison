@@ -1,4 +1,4 @@
-use tools::create_extern_c_wrapper;
+use tools::{create_extern_c_wrapper, min};
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
@@ -38,7 +38,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             let mut v = std::f32::INFINITY;
             for (&x, &y) in d_row.iter().zip(t_row) {
                 let z = x + y;
-                v = if z < v { z } else { v };
+                v = min(v, z);
             }
             *res = v;
         }

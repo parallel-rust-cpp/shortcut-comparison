@@ -23,3 +23,10 @@ macro_rules! create_extern_c_wrapper {
         }
     };
 }
+
+// ANCHOR: min
+#[inline(always)]
+pub fn min(x: f32, y: f32) -> f32 {
+    if x < y { x } else { y }
+}
+// ANCHOR_END: min

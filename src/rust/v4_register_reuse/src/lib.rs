@@ -1,6 +1,4 @@
-use tools::create_extern_c_wrapper;
-use tools::simd;
-use std::arch::x86_64::__m256;
+use tools::{create_extern_c_wrapper, min, simd, simd::f32x8};
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
@@ -10,59 +8,61 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
-    let vecs_per_row = (n + simd::M256_LENGTH - 1) / simd::M256_LENGTH;
+    let vecs_per_row = (n + simd::f32x8_LENGTH - 1) / simd::f32x8_LENGTH;
     // Specify sizes of 3x3 blocks used to load 6 vectors into registers and computing 9 results in one go
     const BLOCKSIZE: usize = 3;
     let blocks_per_col = (n + BLOCKSIZE - 1) / BLOCKSIZE;
     let padded_height = BLOCKSIZE * blocks_per_col;
 
     // Preprocess exactly as in v3_simd, but make sure the amount of rows is divisible by BLOCKSIZE
-    let mut vd = std::vec![simd::m256_infty(); padded_height * vecs_per_row];
-    let mut vt = std::vec![simd::m256_infty(); padded_height * vecs_per_row];
-    let preprocess_row = |(row, (vd_row, vt_row)): (usize, (&mut [__m256], &mut [__m256]))| {
-        for (col, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
-            let mut d_tmp = [std::f32::INFINITY; simd::M256_LENGTH];
-            let mut t_tmp = [std::f32::INFINITY; simd::M256_LENGTH];
-            for (vec_i, (x, y)) in d_tmp.iter_mut().zip(t_tmp.iter_mut()).enumerate() {
-                let d_col = col * simd::M256_LENGTH + vec_i;
-                if row < n && d_col < n {
-                    *x = d[n * row + d_col];
-                    *y = d[n * d_col + row];
+    let mut vd = std::vec![simd::f32x8_infty(); padded_height * vecs_per_row];
+    let mut vt = std::vec![simd::f32x8_infty(); padded_height * vecs_per_row];
+    let pack_simd_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
+        for (jv, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
+            let mut vx_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
+            let mut vy_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
+            for (b, (x, y)) in vx_tmp.iter_mut().zip(vy_tmp.iter_mut()).enumerate() {
+                let j = jv * simd::f32x8_LENGTH + b;
+                if i < n && j < n {
+                    *x = d[n * i + j];
+                    *y = d[n * j + i];
                 }
             }
-            *vx = simd::from_slice(&d_tmp);
-            *vy = simd::from_slice(&t_tmp);
+            *vx = simd::from_slice(&vx_tmp);
+            *vy = simd::from_slice(&vy_tmp);
+            simd::assert_aligned(vx);
+            simd::assert_aligned(vy);
         }
     };
     #[cfg(not(feature = "no-multi-thread"))]
     vd.par_chunks_mut(vecs_per_row)
         .zip(vt.par_chunks_mut(vecs_per_row))
         .enumerate()
-        .for_each(preprocess_row);
+        .for_each(pack_simd_row);
     #[cfg(feature = "no-multi-thread")]
     vd.chunks_mut(vecs_per_row)
         .zip(vt.chunks_mut(vecs_per_row))
         .enumerate()
-        .for_each(preprocess_row);
+        .for_each(pack_simd_row);
 
     // Function: For a row block vd_row_block containing BLOCKSIZE rows containing vecs_per_row simd-vectors containing 8 f32s,
     // compute results for all combinations of vd_row_block and vt_row_block for all row blocks of vt, which is chunked up exactly as vd.
-    let step_row_block = |(i, (r_row_block, vd_row_block)): (usize, (&mut [f32], &[__m256]))| {
+    let step_row_block = |(i, (r_row_block, vd_row_block)): (usize, (&mut [f32], &[f32x8]))| {
         // Chunk up vt into blocks exactly as vd
         let vt_row_blocks = vt.chunks_exact(BLOCKSIZE * vecs_per_row);
         // Compute results for all combinations of row blocks from vd and vt
         for (j, vt_row_block) in vt_row_blocks.enumerate() {
             // Block of 9 simd-vectors containing partial results
-            //let mut tmp = [simd::m256_infty(); BLOCKSIZE * BLOCKSIZE];
-            let mut tmp0 = simd::m256_infty();
-            let mut tmp1 = simd::m256_infty();
-            let mut tmp2 = simd::m256_infty();
-            let mut tmp3 = simd::m256_infty();
-            let mut tmp4 = simd::m256_infty();
-            let mut tmp5 = simd::m256_infty();
-            let mut tmp6 = simd::m256_infty();
-            let mut tmp7 = simd::m256_infty();
-            let mut tmp8 = simd::m256_infty();
+            //let mut tmp = [simd::f32x8_infty(); BLOCKSIZE * BLOCKSIZE];
+            let mut tmp0 = simd::f32x8_infty();
+            let mut tmp1 = simd::f32x8_infty();
+            let mut tmp2 = simd::f32x8_infty();
+            let mut tmp3 = simd::f32x8_infty();
+            let mut tmp4 = simd::f32x8_infty();
+            let mut tmp5 = simd::f32x8_infty();
+            let mut tmp6 = simd::f32x8_infty();
+            let mut tmp7 = simd::f32x8_infty();
+            let mut tmp8 = simd::f32x8_infty();
             // Extract all 6 rows from the row blocks
             let vd_row_0 = vd_row_block[0 * vecs_per_row..1 * vecs_per_row].iter();
             let vd_row_1 = vd_row_block[1 * vecs_per_row..2 * vecs_per_row].iter();
