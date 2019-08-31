@@ -10,25 +10,21 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
-    #[allow(non_upper_case_globals)]
-    const vec_width: usize = simd::M256_LENGTH;
-    let vecs_per_row = (n + vec_width - 1) / vec_width;
-
+    let vecs_per_row = (n + simd::M256_LENGTH - 1) / simd::M256_LENGTH;
     // Specify sizes of 3x3 blocks used to load 6 vectors into registers and computing 9 results in one go
-    #[allow(non_upper_case_globals)]
-    const blocksize: usize = 3;
-    let blocks_per_col = (n + blocksize - 1) / blocksize;
-    let padded_height = blocksize * blocks_per_col;
+    const BLOCKSIZE: usize = 3;
+    let blocks_per_col = (n + BLOCKSIZE - 1) / BLOCKSIZE;
+    let padded_height = BLOCKSIZE * blocks_per_col;
 
-    // Preprocess exactly as in v3_simd, but make sure the amount of rows is divisible by blocksize
+    // Preprocess exactly as in v3_simd, but make sure the amount of rows is divisible by BLOCKSIZE
     let mut vd = std::vec![simd::m256_infty(); padded_height * vecs_per_row];
     let mut vt = std::vec![simd::m256_infty(); padded_height * vecs_per_row];
     let preprocess_row = |(row, (vd_row, vt_row)): (usize, (&mut [__m256], &mut [__m256]))| {
         for (col, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
-            let mut d_tmp = [std::f32::INFINITY; vec_width];
-            let mut t_tmp = [std::f32::INFINITY; vec_width];
+            let mut d_tmp = [std::f32::INFINITY; simd::M256_LENGTH];
+            let mut t_tmp = [std::f32::INFINITY; simd::M256_LENGTH];
             for (vec_i, (x, y)) in d_tmp.iter_mut().zip(t_tmp.iter_mut()).enumerate() {
-                let d_col = col * vec_width + vec_i;
+                let d_col = col * simd::M256_LENGTH + vec_i;
                 if row < n && d_col < n {
                     *x = d[n * row + d_col];
                     *y = d[n * d_col + row];
@@ -49,15 +45,15 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(preprocess_row);
 
-    // Function: For a row block vd_row_block containing blocksize rows containing vecs_per_row simd-vectors containing vec_width of f32s,
+    // Function: For a row block vd_row_block containing BLOCKSIZE rows containing vecs_per_row simd-vectors containing 8 f32s,
     // compute results for all combinations of vd_row_block and vt_row_block for all row blocks of vt, which is chunked up exactly as vd.
     let step_row_block = |(i, (r_row_block, vd_row_block)): (usize, (&mut [f32], &[__m256]))| {
         // Chunk up vt into blocks exactly as vd
-        let vt_row_blocks = vt.chunks_exact(blocksize * vecs_per_row);
+        let vt_row_blocks = vt.chunks_exact(BLOCKSIZE * vecs_per_row);
         // Compute results for all combinations of row blocks from vd and vt
         for (j, vt_row_block) in vt_row_blocks.enumerate() {
             // Block of 9 simd-vectors containing partial results
-            //let mut tmp = [simd::m256_infty(); blocksize * blocksize];
+            //let mut tmp = [simd::m256_infty(); BLOCKSIZE * BLOCKSIZE];
             let mut tmp0 = simd::m256_infty();
             let mut tmp1 = simd::m256_infty();
             let mut tmp2 = simd::m256_infty();
@@ -91,11 +87,11 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
             let tmp = [tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8];
             // Set 9 final results for all combinations of 3 rows starting at i and 3 rows starting at j
-            for (block_i, (r_row, tmp_row)) in r_row_block.chunks_exact_mut(n).zip(tmp.chunks_exact(blocksize)).enumerate() {
+            for (block_i, (r_row, tmp_row)) in r_row_block.chunks_exact_mut(n).zip(tmp.chunks_exact(BLOCKSIZE)).enumerate() {
                 assert_eq!(r_row.len(), n);
                 for (block_j, tmp_res) in tmp_row.iter().enumerate() {
-                    let res_i = i * blocksize + block_i;
-                    let res_j = j * blocksize + block_j;
+                    let res_i = i * BLOCKSIZE + block_i;
+                    let res_j = j * BLOCKSIZE + block_j;
                     if res_i < n && res_j < n {
                         // Reduce one simd-vector to the final result for one pair of rows
                         r_row[res_j] = simd::horizontal_min(*tmp_res);

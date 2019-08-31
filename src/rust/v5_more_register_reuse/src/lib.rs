@@ -10,27 +10,24 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
-    #[allow(non_upper_case_globals)]
-    const vec_width: usize = simd::M256_LENGTH;
-    let vecs_per_col = (n + vec_width - 1) / vec_width;
-
+    let vecs_per_col = (n + simd::M256_LENGTH - 1) / simd::M256_LENGTH;
     // Like v4, but this time pack all elements of d into simd-vectors vertically,
-    // i.e. the amount of rows will be divisible by vec_width
+    // i.e. the amount of rows will be divisible by 8
     let mut vd = std::vec![simd::m256_infty(); n * vecs_per_col];
     let mut vt = std::vec![simd::m256_infty(); n * vecs_per_col];
     let preprocess_row = |(row, (vd_row, vt_row)): (usize, (&mut [__m256], &mut [__m256]))| {
-        for (col, (vd_elem, vt_elem)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
-            let mut d_slice = [std::f32::INFINITY; vec_width];
-            let mut t_slice = [std::f32::INFINITY; vec_width];
-            for vec_j in 0..vec_width {
-                let j = row * vec_width + vec_j;
+        for (col, (x, y)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
+            let mut d_slice = [std::f32::INFINITY; simd::M256_LENGTH];
+            let mut t_slice = [std::f32::INFINITY; simd::M256_LENGTH];
+            for vec_j in 0..simd::M256_LENGTH {
+                let j = row * simd::M256_LENGTH + vec_j;
                 if j < n {
                     d_slice[vec_j] = d[n * j + col];
                     t_slice[vec_j] = d[n * col + j];
                 }
             }
-            *vd_elem = simd::from_slice(&d_slice);
-            *vt_elem = simd::from_slice(&t_slice);
+            *x = simd::from_slice(&d_slice);
+            *y = simd::from_slice(&t_slice);
         }
     };
     #[cfg(not(feature = "no-multi-thread"))]
@@ -51,8 +48,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         // Compute results for all combinations of simd-vector rows of vt and vd
         for (j, vt_row) in vt.chunks_exact(n).enumerate() {
             assert_eq!(vt_row.len(), n);
-            // Intermediate results for vec_width of rows
-            let mut tmp = [simd::m256_infty(); vec_width];
+            // Intermediate results for simd::M256_LENGTH of rows
+            let mut tmp = [simd::m256_infty(); simd::M256_LENGTH];
             // Horizontally compute 8 minimums from each pair of vertical vectors for this row block
             for (&d0, &t0) in vd_row.iter().zip(vt_row) {
                 // Compute permutations of simd-vector elements
@@ -76,11 +73,11 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             tmp[5] = simd::swap(tmp[5], 1);
             tmp[7] = simd::swap(tmp[7], 1);
             // Set 8 final results
-            for block_i in 0..vec_width {
+            for block_i in 0..simd::M256_LENGTH {
                 for (block_j, r_row) in r_row_block.chunks_exact_mut(n).enumerate() {
                     assert_eq!(r_row.len(), n);
-                    let res_i = block_j + i * vec_width;
-                    let res_j = block_i + j * vec_width;
+                    let res_i = block_j + i * simd::M256_LENGTH;
+                    let res_j = block_i + j * simd::M256_LENGTH;
                     if res_i < n && res_j < n {
                         let v = tmp[block_j ^ block_i];
                         let vi = block_i as u8;
@@ -90,14 +87,14 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
         }
     };
-    // Chunk up r into row blocks containing vec_width of rows and vd into rows each containing n simd-vectors
+    // Chunk up r into row blocks containing 8 rows and vd into rows each containing n simd-vectors
     #[cfg(not(feature = "no-multi-thread"))]
-    r.par_chunks_mut(vec_width * n)
+    r.par_chunks_mut(simd::M256_LENGTH * n)
         .zip(vd.par_chunks(n))
         .enumerate()
         .for_each(step_row);
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_mut(vec_width * n)
+    r.chunks_mut(simd::M256_LENGTH * n)
         .zip(vd.chunks(n))
         .enumerate()
         .for_each(step_row);
