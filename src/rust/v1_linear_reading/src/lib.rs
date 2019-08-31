@@ -12,7 +12,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // Transpose of d
     let mut t = vec![0.0; n * n];
     // Function: for some column j in d, copy all elements of that column into row i in t (t_row)
-    let transpose_row = |(j, t_row): (usize, &mut [f32])| {
+    let transpose_column = |(j, t_row): (usize, &mut [f32])| {
         for (i, x) in t_row.iter_mut().enumerate() {
             *x = d[n*i + j];
         }
@@ -23,12 +23,12 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // ANCHOR: transpose_apply
     t.par_chunks_mut(n)
         .enumerate()
-        .for_each(transpose_row);
+        .for_each(transpose_column);
     // ANCHOR_END: transpose_apply
     #[cfg(feature = "no-multi-thread")]
     t.chunks_mut(n)
         .enumerate()
-        .for_each(transpose_row);
+        .for_each(transpose_column);
     // ANCHOR: step_row
     // Function: for some row i in d (d_row) and all rows t (t_rows), compute n results into a row in r (r_row)
     let step_row = |(r_row, d_row): (&mut [f32], &[f32])| {

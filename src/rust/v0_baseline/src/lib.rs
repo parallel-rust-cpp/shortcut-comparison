@@ -23,8 +23,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         }
     };
     // ANCHOR_END: step_row
-    // ANCHOR: chunks
     // Partition r into slices, each containing a single row and apply the function on the rows
+    // ANCHOR: chunks
     #[cfg(not(feature = "no-multi-thread"))] // Process each row as a separate task in parallel
     //// ANCHOR: par_chunks
     r.par_chunks_mut(n)
@@ -33,7 +33,9 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     //// ANCHOR_END: par_chunks
     #[cfg(feature = "no-multi-thread")] // Process all rows in the main thread
     //// ANCHOR: seq_chunks
+    //// ANCHOR: seq_chunks_mut
     r.chunks_mut(n)
+    //// ANCHOR_END: seq_chunks_mut
         .enumerate()
         .for_each(step_row);
     //// ANCHOR_END: seq_chunks
