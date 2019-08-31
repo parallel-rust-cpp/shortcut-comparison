@@ -21,6 +21,13 @@ function echo_header {
     echo
 }
 
+function clean {
+    if [ -d "$BUILD_DIR" ]; then
+        echo "removing $BUILD_DIR"
+        rm --recursive "$BUILD_DIR"
+    fi
+}
+
 function check_dependencies {
     local all_ok=1
     local executables='python3 clang++ make cmake cargo rustc'
@@ -41,45 +48,48 @@ function check_dependencies {
 
 echo_header "Check all dependencies"
 check_dependencies
+echo
 
 if [ $DO_SINGLE_THREAD -ne 0 ]; then
-    rm --recursive --force $BUILD_DIR
-    echo_header "==== SINGLE THREAD BENCHMARK ===="
-    echo_header "Building all libraries"
-    ./build.py --verbose --no-multi-thread --build_dir $BUILD_DIR
-    echo_header "Testing all libraries"
-    echo "loadavg" $(cut -f1-3 -d' ' /proc/loadavg)
+    echo_header "Single-thread benchmark"
+    echo "Building all libraries in debug mode"
+    clean
+    ./build.py --debug --no-multi-thread --build_dir $BUILD_DIR
+    echo "Testing all libraries"
     ./test.py --iterations $TEST_ITERATIONS \
         --build_dir $BUILD_DIR \
         --threads 1
-    echo_header "Running all benchmarks"
-    echo "loadavg" $(cut -f1-3 -d' ' /proc/loadavg)
+    echo "Building all libraries"
+    clean
+    ./build.py --no-multi-thread --build_dir $BUILD_DIR
+    echo "Running all benchmarks"
     ./bench.py --reporter_out csv \
         --no-perf \
         --report_dir "$REPORT_DIR/single_core" \
         --build_dir $BUILD_DIR \
         --input_size $BENCHMARK_SIZE \
         --threads 1
-    echo_header "==== SINGLE THREAD BENCHMARK COMPLETE ===="
+    echo_header "Single-thread benchmark complete"
 fi
 
 if [ $DO_MULTI_THREAD -ne 0 ]; then
-    rm --recursive --force $BUILD_DIR
-    echo_header "==== MULTI THREAD BENCHMARK ===="
-    echo_header "Building all libraries"
-    ./build.py --verbose --build_dir $BUILD_DIR
-    echo_header "Testing all libraries"
-    echo "loadavg" $(cut -f1-3 -d' ' /proc/loadavg)
+    echo_header "Multi-thread benchmark"
+    echo "Building all libraries in debug mode"
+    clean
+    ./build.py --debug --build_dir $BUILD_DIR
+    echo "Testing all libraries"
     ./test.py --iterations $TEST_ITERATIONS \
         --build_dir $BUILD_DIR \
         --threads $THREADS
-    echo_header "Running all benchmarks"
-    echo "loadavg" $(cut -f1-3 -d' ' /proc/loadavg)
+    echo "Building all libraries"
+    clean
+    ./build.py --build_dir $BUILD_DIR
+    echo "Running all benchmarks"
     ./bench.py --reporter_out csv \
         --no-perf \
         --report_dir "$REPORT_DIR/multi_core" \
         --build_dir $BUILD_DIR \
         --input_size $BENCHMARK_SIZE \
         --threads $THREADS
-    echo_header "==== MULTI THREAD BENCHMARK COMPLETE ===="
+    echo_header "Multi-thread benchmark complete"
 fi

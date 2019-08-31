@@ -88,6 +88,9 @@ if __name__ == "__main__":
     parser.add_argument("--cxx",
             type=str,
             help="Specify CXX environment variable to be used when running cmake")
+    parser.add_argument("--debug",
+            action='store_true',
+            help="Do not remote runtime debug-assertions, even from optimized builds. Use this e.g. when running the tests.")
 
     args = parser.parse_args()
     root_dir =  os.path.abspath(args.source_root)
@@ -106,6 +109,8 @@ if __name__ == "__main__":
     if args.emit_asm:
         append_rust_flags("--emit asm")
         append_rust_flags("-Z asm_comments")
+    if args.debug:
+        append_rust_flags("-C debug-assertions")
 
     if not os.path.exists(build_dir):
         os.makedirs(build_dir)

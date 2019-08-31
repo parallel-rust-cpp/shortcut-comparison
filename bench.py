@@ -78,11 +78,11 @@ def run(cmd, input_size, no_perf=False, num_threads=None):
     """
     cmd_prefix = ''
     if not no_perf:
-        cmd_prefix = "perf stat --detailed --detailed --field-separator=,"
+        cmd_prefix = "perf stat --detailed --detailed --field-separator=, "
     env = None
     if num_threads:
         env = dict(os.environ.copy(), OMP_NUM_THREADS=str(num_threads), RAYON_NUM_THREADS=str(num_threads))
-    cmd_list = (cmd_prefix + ' ' + cmd).split(' ')
+    cmd_list = (cmd_prefix + cmd).split(' ')
     result = subprocess.run(
         cmd_list,
         stdout=subprocess.PIPE,
