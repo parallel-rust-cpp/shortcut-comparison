@@ -1,3 +1,6 @@
+/*
+ * From http://ppc.cs.aalto.fi/ch2/v7/
+ */
 #include <algorithm>
 #if !NO_MULTI_THREAD
 #include <parallel/algorithm>

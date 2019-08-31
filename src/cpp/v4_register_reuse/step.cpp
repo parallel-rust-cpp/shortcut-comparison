@@ -1,3 +1,6 @@
+/*
+ * From http://ppc.cs.aalto.fi/ch2/v4/
+ */
 #include "step.hpp"
 #include "simd.hpp"
 

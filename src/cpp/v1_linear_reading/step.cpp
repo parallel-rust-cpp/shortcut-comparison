@@ -1,3 +1,6 @@
+/*
+ * From http://ppc.cs.aalto.fi/ch2/v1/
+ */
 #include <limits>
 #include <algorithm>
 #include <vector>
