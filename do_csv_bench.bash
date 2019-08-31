@@ -37,7 +37,7 @@ function check_dependencies {
             echo_red "$dep not found"
             all_ok=0
         else
-            echo "$dep is $where"
+            echo "$dep is '$($where --version | head -1)' at $where"
         fi
     done
     if [ "$all_ok" != "1" ]; then
