@@ -1,4 +1,4 @@
-use tools::{create_extern_c_wrapper, min, simd, simd::f32x8};
+use tools::{create_extern_c_wrapper, simd, simd::f32x8};
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
@@ -11,6 +11,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     let vecs_per_col = (n + simd::f32x8_LENGTH - 1) / simd::f32x8_LENGTH;
     let mut vd = std::vec![simd::f32x8_infty(); n * vecs_per_col];
     let mut vt = std::vec![simd::f32x8_infty(); n * vecs_per_col];
+    debug_assert!(vd.iter().all(simd::is_aligned));
+    debug_assert!(vt.iter().all(simd::is_aligned));
     let pack_simd_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
         for (jv, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
             let mut vx_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
@@ -24,8 +26,6 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
             *vx = simd::from_slice(&vx_tmp);
             *vy = simd::from_slice(&vy_tmp);
-            simd::assert_aligned(vx);
-            simd::assert_aligned(vy);
         }
     };
     #[cfg(not(feature = "no-multi-thread"))]
@@ -41,9 +41,9 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
 
     // Everything is exactly as in v5, but we add some prefetch instructions in the innermost loop
     // Create raw pointers for prefetching
-    let vd_ptr = vd.as_ptr();
-    let vt_ptr = vt.as_ptr();
     let step_row = |(i, (r_row_block, vd_row)): (usize, (&mut [f32], &[f32x8]))| {
+        let vd_ptr = vd.as_ptr();
+        let vt_ptr = vt.as_ptr();
         assert_eq!(vd_row.len(), n);
         for (j, vt_row) in vt.chunks_exact(n).enumerate() {
             assert_eq!(vt_row.len(), n);

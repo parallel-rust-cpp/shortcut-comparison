@@ -1,4 +1,4 @@
-use tools::{create_extern_c_wrapper, min, simd, simd::f32x8};
+use tools::{create_extern_c_wrapper, simd, simd::f32x8};
 
 extern crate core;
 // For interleaving bits to construct Z-order curve
@@ -20,6 +20,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
 
     let mut vd = std::vec![simd::f32x8_infty(); n * vecs_per_col];
     let mut vt = std::vec![simd::f32x8_infty(); n * vecs_per_col];
+    debug_assert!(vd.iter().all(simd::is_aligned));
+    debug_assert!(vt.iter().all(simd::is_aligned));
     let pack_simd_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
         for (jv, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
             let mut vx_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
@@ -33,8 +35,6 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
             *vx = simd::from_slice(&vx_tmp);
             *vy = simd::from_slice(&vy_tmp);
-            simd::assert_aligned(vx);
-            simd::assert_aligned(vy);
         }
     };
     #[cfg(not(feature = "no-multi-thread"))]

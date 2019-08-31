@@ -1,4 +1,4 @@
-use tools::{create_extern_c_wrapper, min, simd, simd::f32x8};
+use tools::{create_extern_c_wrapper, simd, simd::f32x8};
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
@@ -15,6 +15,9 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // each initially filled with 8 f32::INFINITYs
     let mut vd = std::vec![simd::f32x8_infty(); n * vecs_per_row];
     let mut vt = std::vec![simd::f32x8_infty(); n * vecs_per_row];
+    // Assert that all addresses of vd and vt are properly aligned to the size of f32x8
+    debug_assert!(vd.iter().all(simd::is_aligned));
+    debug_assert!(vt.iter().all(simd::is_aligned));
     // ANCHOR_END: init
     // ANCHOR: preprocess
     // Function: for one row of f32x8 vectors in vd and one row of f32x8 vectors in vt,
@@ -39,8 +42,6 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             // Initialize f32x8 vectors from buffer contents and assign them into the std::vec::Vec containers
             *vx = simd::from_slice(&vx_tmp);
             *vy = simd::from_slice(&vy_tmp);
-            simd::assert_aligned(vx);
-            simd::assert_aligned(vy);
         }
     };
     // Fill rows of vd and vt in parallel one pair of rows at a time

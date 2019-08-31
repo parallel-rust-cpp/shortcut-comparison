@@ -106,8 +106,9 @@ pub fn print_vec(v: f32x8, padding: usize, precision: usize) {
     }
 }
 
-/// Assert that a f32x8 is properly aligned
+// ANCHOR: assert_aligned
 #[inline(always)]
-pub fn assert_aligned(v: &f32x8) {
-    assert_eq!((v as *const f32x8).align_offset(std::mem::align_of::<f32x8>()), 0);
+pub fn is_aligned(v: &f32x8) -> bool {
+    (v as *const f32x8).align_offset(std::mem::align_of::<f32x8>()) == 0
 }
+// ANCHOR_END: assert_aligned
