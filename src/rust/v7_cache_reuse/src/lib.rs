@@ -45,8 +45,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(preprocess_row);
     #[cfg(feature = "no-multi-thread")]
-    vd.chunks_exact_mut(n)
-        .zip(vt.chunks_exact_mut(n))
+    vd.chunks_mut(n)
+        .zip(vt.chunks_mut(n))
         .enumerate()
         .for_each(preprocess_row);
 
@@ -68,7 +68,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     }
     #[cfg(feature = "no-multi-thread")]
     {
-        row_pairs.chunks_exact_mut(vecs_per_col).enumerate().for_each(interleave_row);
+        row_pairs.chunks_mut(vecs_per_col).enumerate().for_each(interleave_row);
         row_pairs.sort_unstable();
     }
 
@@ -117,7 +117,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             .for_each(step_partial_block);
         #[cfg(feature = "no-multi-thread")]
         partial_results
-            .chunks_exact_mut(vec_width)
+            .chunks_mut(vec_width)
             .enumerate()
             .for_each(step_partial_block);
     }
@@ -148,8 +148,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(set_z_order_result_block);
     #[cfg(feature = "no-multi-thread")]
-    rz.chunks_exact_mut(vec_width * vec_width)
-        .zip(partial_results.chunks_exact_mut(vec_width))
+    rz.chunks_mut(vec_width * vec_width)
+        .zip(partial_results.chunks_mut(vec_width))
         .enumerate()
         .for_each(set_z_order_result_block);
 

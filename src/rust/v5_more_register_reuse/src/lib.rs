@@ -39,8 +39,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(preprocess_row);
     #[cfg(feature = "no-multi-thread")]
-    vd.chunks_exact_mut(n)
-        .zip(vt.chunks_exact_mut(n))
+    vd.chunks_mut(n)
+        .zip(vt.chunks_mut(n))
         .enumerate()
         .for_each(preprocess_row);
 
@@ -97,8 +97,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(step_row);
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_exact_mut(vec_width * n)
-        .zip(vd.chunks_exact(n))
+    r.chunks_mut(vec_width * n)
+        .zip(vd.chunks(n))
         .enumerate()
         .for_each(step_row);
 }

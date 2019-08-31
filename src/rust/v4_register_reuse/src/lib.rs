@@ -44,8 +44,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(preprocess_row);
     #[cfg(feature = "no-multi-thread")]
-    vd.chunks_exact_mut(vecs_per_row)
-        .zip(vt.chunks_exact_mut(vecs_per_row))
+    vd.chunks_mut(vecs_per_row)
+        .zip(vt.chunks_mut(vecs_per_row))
         .enumerate()
         .for_each(preprocess_row);
 
@@ -106,13 +106,13 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     };
     // Chunk up r and vd into row blocks and compute results of all row combinations between vd and vt
     #[cfg(not(feature = "no-multi-thread"))]
-    r.par_chunks_mut(blocksize * n)
-        .zip(vd.par_chunks(blocksize * vecs_per_row))
+    r.par_chunks_mut(BLOCKSIZE * n)
+        .zip(vd.par_chunks(BLOCKSIZE * vecs_per_row))
         .enumerate()
         .for_each(step_row_block);
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_exact_mut(blocksize * n)
-        .zip(vd.chunks_exact(blocksize * vecs_per_row))
+    r.chunks_mut(BLOCKSIZE * n)
+        .zip(vd.chunks(BLOCKSIZE * vecs_per_row))
         .enumerate()
         .for_each(step_row_block);
 }

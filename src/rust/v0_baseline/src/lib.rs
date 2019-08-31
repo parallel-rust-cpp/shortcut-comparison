@@ -33,7 +33,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     //// ANCHOR_END: par_chunks
     #[cfg(feature = "no-multi-thread")] // Process all rows in the main thread
     //// ANCHOR: seq_chunks
-    r.chunks_exact_mut(n)
+    r.chunks_mut(n)
         .enumerate()
         .for_each(step_row);
     //// ANCHOR_END: seq_chunks

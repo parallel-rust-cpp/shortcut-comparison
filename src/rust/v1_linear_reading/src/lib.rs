@@ -26,7 +26,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .for_each(transpose_row);
     // ANCHOR_END: transpose_apply
     #[cfg(feature = "no-multi-thread")]
-    t.chunks_exact_mut(n)
+    t.chunks_mut(n)
         .enumerate()
         .for_each(transpose_row);
     // ANCHOR: step_row
@@ -53,8 +53,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .for_each(step_row);
     // ANCHOR_END: step_row_apply
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_exact_mut(n)
-        .zip(d.chunks_exact(n))
+    r.chunks_mut(n)
+        .zip(d.chunks(n))
         .for_each(step_row);
 }
 

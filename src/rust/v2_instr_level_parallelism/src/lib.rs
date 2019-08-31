@@ -34,8 +34,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .for_each(preprocess_row);
     // ANCHOR_END: preprocess_apply
     #[cfg(feature = "no-multi-thread")]
-    vd.chunks_exact_mut(n_padded)
-        .zip(vt.chunks_exact_mut(n_padded))
+    vd.chunks_mut(n_padded)
+        .zip(vt.chunks_mut(n_padded))
         .enumerate()
         .for_each(preprocess_row);
     // ANCHOR: step_row
@@ -74,8 +74,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .for_each(step_row);
     // ANCHOR_END: step_row_apply
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_exact_mut(n)
-        .zip(vd.chunks_exact(n_padded))
+    r.chunks_mut(n)
+        .zip(vd.chunks(n_padded))
         .for_each(step_row);
 }
 
