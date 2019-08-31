@@ -1,5 +1,5 @@
 #include <algorithm>
-#ifdef _OPENMP
+#if !NO_MULTI_THREAD
 #include <parallel/algorithm>
 #endif
 #include <vector>
@@ -35,7 +35,7 @@ void step(float* r, const float* d_, int n) {
             rows[ia*na + ja] = std::make_tuple(ija, ia, ja);
         }
     }
-#ifdef _OPENMP
+#if !NO_MULTI_THREAD
     __gnu_parallel::sort(rows.begin(), rows.end());
 #else
     std::sort(rows.begin(), rows.end());

@@ -13,9 +13,7 @@ void step(float* r, const float* d_input, int n) {
     std::vector<float> d(n*nab, infty);
     std::vector<float> t(n*nab, infty);
 
-#if !NO_MULTI_THREAD
     #pragma omp parallel for
-#endif
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             d[nab*i + j] = d_input[n*i + j];
@@ -23,9 +21,7 @@ void step(float* r, const float* d_input, int n) {
         }
     }
 
-#if !NO_MULTI_THREAD
     #pragma omp parallel for
-#endif
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             float vv[nb];

@@ -5,18 +5,14 @@
 
 void step(float* r, const float* d, int n) {
     std::vector<float> t(n*n);
-#if !NO_MULTI_THREAD
     #pragma omp parallel for
-#endif
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             t[n*j + i] = d[n*i + j];
         }
     }
 
-#if !NO_MULTI_THREAD
     #pragma omp parallel for
-#endif
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             float v = std::numeric_limits<float>::infinity();
