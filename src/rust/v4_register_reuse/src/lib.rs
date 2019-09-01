@@ -1,4 +1,7 @@
 use tools::{create_extern_c_wrapper, simd, simd::f32x8};
+// izip for zipping multiple iterators
+#[macro_use]
+extern crate itertools;
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
@@ -8,15 +11,15 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
+    // ANCHOR: init
     let vecs_per_row = (n + simd::f32x8_LENGTH - 1) / simd::f32x8_LENGTH;
-    // Specify sizes of 3x3 blocks used to load 6 vectors into registers and computing 9 results in one go
-    const BLOCKSIZE: usize = 3;
-    let blocks_per_col = (n + BLOCKSIZE - 1) / BLOCKSIZE;
-    let padded_height = BLOCKSIZE * blocks_per_col;
-
-    // Preprocess exactly as in v3_simd, but make sure the amount of rows is divisible by BLOCKSIZE
+    const BLOCK_HEIGHT: usize = 3;
+    let blocks_per_col = (n + BLOCK_HEIGHT - 1) / BLOCK_HEIGHT;
+    let padded_height = BLOCK_HEIGHT * blocks_per_col;
+    // Preprocess exactly as in v3_simd, but make sure the amount of rows is divisible by BLOCK_HEIGHT
     let mut vd = std::vec![simd::f32x8_infty(); padded_height * vecs_per_row];
     let mut vt = std::vec![simd::f32x8_infty(); padded_height * vecs_per_row];
+    // ANCHOR_END: init
     debug_assert!(vd.iter().all(simd::is_aligned));
     debug_assert!(vt.iter().all(simd::is_aligned));
     let pack_simd_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
@@ -45,15 +48,14 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(pack_simd_row);
 
-    // Function: For a row block vd_row_block containing BLOCKSIZE rows containing vecs_per_row simd-vectors containing 8 f32s,
-    // compute results for all combinations of vd_row_block and vt_row_block for all row blocks of vt, which is chunked up exactly as vd.
+    // Function: For a row block vd_row_block containing 3 rows of f32x8 vectors,
+    // compute results for all row combinations of vd_row_block and row blocks of vt
     let step_row_block = |(i, (r_row_block, vd_row_block)): (usize, (&mut [f32], &[f32x8]))| {
         // Chunk up vt into blocks exactly as vd
-        let vt_row_blocks = vt.chunks_exact(BLOCKSIZE * vecs_per_row);
+        let vt_row_blocks = vt.chunks_exact(BLOCK_HEIGHT * vecs_per_row);
         // Compute results for all combinations of row blocks from vd and vt
         for (j, vt_row_block) in vt_row_blocks.enumerate() {
-            // Block of 9 simd-vectors containing partial results
-            //let mut tmp = [simd::f32x8_infty(); BLOCKSIZE * BLOCKSIZE];
+            // Partial results for 9 f32x8 row pairs
             let mut tmp0 = simd::f32x8_infty();
             let mut tmp1 = simd::f32x8_infty();
             let mut tmp2 = simd::f32x8_infty();
@@ -71,9 +73,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             let vt_row_1 = vt_row_block[1 * vecs_per_row..2 * vecs_per_row].iter();
             let vt_row_2 = vt_row_block[2 * vecs_per_row..3 * vecs_per_row].iter();
             // Move horizontally, computing 3 x 3 results for each column
-            // At each iteration, load two 'vertical stripes' of 3 simd-vectors, in total 6 simd-vectors
-            //TODO use some multi-zip macro to flatten tuples
-            for (((((&d0, &t0), &d1), &t1), &d2), &t2) in vd_row_0.zip(vt_row_0).zip(vd_row_1).zip(vt_row_1).zip(vd_row_2).zip(vt_row_2) {
+            // At each iteration, load two 'vertical stripes' of 3 f32x8 vectors
+            for (&d0, &d1, &d2, &t0, &t1, &t2) in izip!(vd_row_0, vd_row_1, vd_row_2, vt_row_0, vt_row_1, vt_row_2) {
                 // Combine all pairs of simd-vectors from 6 rows to compute 9 results at this column
                 tmp0 = simd::min(tmp0, simd::add(d0, t0));
                 tmp1 = simd::min(tmp1, simd::add(d0, t1));
@@ -87,11 +88,11 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
             let tmp = [tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8];
             // Set 9 final results for all combinations of 3 rows starting at i and 3 rows starting at j
-            for (block_i, (r_row, tmp_row)) in r_row_block.chunks_exact_mut(n).zip(tmp.chunks_exact(BLOCKSIZE)).enumerate() {
+            for (block_i, (r_row, tmp_row)) in r_row_block.chunks_exact_mut(n).zip(tmp.chunks_exact(BLOCK_HEIGHT)).enumerate() {
                 assert_eq!(r_row.len(), n);
                 for (block_j, tmp_res) in tmp_row.iter().enumerate() {
-                    let res_i = i * BLOCKSIZE + block_i;
-                    let res_j = j * BLOCKSIZE + block_j;
+                    let res_i = i * BLOCK_HEIGHT + block_i;
+                    let res_j = j * BLOCK_HEIGHT + block_j;
                     if res_i < n && res_j < n {
                         // Reduce one simd-vector to the final result for one pair of rows
                         r_row[res_j] = simd::horizontal_min(*tmp_res);
@@ -102,13 +103,13 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     };
     // Chunk up r and vd into row blocks and compute results of all row combinations between vd and vt
     #[cfg(not(feature = "no-multi-thread"))]
-    r.par_chunks_mut(BLOCKSIZE * n)
-        .zip(vd.par_chunks(BLOCKSIZE * vecs_per_row))
+    r.par_chunks_mut(BLOCK_HEIGHT * n)
+        .zip(vd.par_chunks(BLOCK_HEIGHT * vecs_per_row))
         .enumerate()
         .for_each(step_row_block);
     #[cfg(feature = "no-multi-thread")]
-    r.chunks_mut(BLOCKSIZE * n)
-        .zip(vd.chunks(BLOCKSIZE * vecs_per_row))
+    r.chunks_mut(BLOCK_HEIGHT * n)
+        .zip(vd.chunks(BLOCK_HEIGHT * vecs_per_row))
         .enumerate()
         .for_each(step_row_block);
 }

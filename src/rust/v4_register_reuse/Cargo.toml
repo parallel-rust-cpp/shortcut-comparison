@@ -7,6 +7,7 @@ publish = false
 [dependencies]
 rayon = "1.*"
 tools = { path = "../tools" }
+itertools = "0.*"
 
 [lib]
 name = "v4_register_reuse"
