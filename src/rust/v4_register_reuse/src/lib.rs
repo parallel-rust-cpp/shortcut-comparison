@@ -48,6 +48,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(pack_simd_row);
 
+    // ANCHOR: step_row_block
+    //// ANCHOR: step_row_block_head
     // Function: For a row block vd_row_block containing 3 rows of f32x8 vectors,
     // compute results for all row combinations of vd_row_block and row blocks of vt
     let step_row_block = |(i, (r_row_block, vd_row_block)): (usize, (&mut [f32], &[f32x8]))| {
@@ -55,6 +57,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         let vt_row_blocks = vt.chunks_exact(BLOCK_HEIGHT * vecs_per_row);
         // Compute results for all combinations of row blocks from vd and vt
         for (j, vt_row_block) in vt_row_blocks.enumerate() {
+            //// ANCHOR_END: step_row_block_head
             // Partial results for 9 f32x8 row pairs
             let mut tmp0 = simd::f32x8_infty();
             let mut tmp1 = simd::f32x8_infty();
@@ -101,12 +104,15 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
         }
     };
+    // ANCHOR_END: step_row_block
     // Chunk up r and vd into row blocks and compute results of all row combinations between vd and vt
     #[cfg(not(feature = "no-multi-thread"))]
+    // ANCHOR: step_row_apply
     r.par_chunks_mut(BLOCK_HEIGHT * n)
         .zip(vd.par_chunks(BLOCK_HEIGHT * vecs_per_row))
         .enumerate()
         .for_each(step_row_block);
+    // ANCHOR_END: step_row_apply
     #[cfg(feature = "no-multi-thread")]
     r.chunks_mut(BLOCK_HEIGHT * n)
         .zip(vd.chunks(BLOCK_HEIGHT * vecs_per_row))
