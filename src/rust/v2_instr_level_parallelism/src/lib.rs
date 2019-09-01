@@ -54,11 +54,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             let mut block = [std::f32::INFINITY; BLOCK_SIZE];
             // Accumulate all results as in v1, but 4 elements at a time
             for (vd_block, vt_block) in vd_blocks.zip(vt_blocks) {
-                assert_eq!(vd_block.len(), BLOCK_SIZE);
-                assert_eq!(vt_block.len(), BLOCK_SIZE);
-                for i in 0..BLOCK_SIZE {
-                    let z = vd_block[i] + vt_block[i];
-                    block[i] = min(block[i], z);
+                for (b, (&x, &y)) in block.iter_mut().zip(vd_block.iter().zip(vt_block)) {
+                    *b = min(*b, x + y);
                 }
             }
             // Fold 4 intermediate values into a single minimum and assign to final result
