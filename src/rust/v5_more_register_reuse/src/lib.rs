@@ -9,13 +9,12 @@ use rayon::prelude::*;
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
     let vecs_per_col = (n + simd::f32x8_LENGTH - 1) / simd::f32x8_LENGTH;
-    // Like v4, but this time pack all elements of d into simd-vectors vertically,
-    // i.e. the amount of columns will be n and amount of rows vecs_per_col, which is divisible by 8
+    // Like v4, but this time pack all elements of d into f32x8s vertically
     let mut vd = std::vec![simd::f32x8_infty(); n * vecs_per_col];
     let mut vt = std::vec![simd::f32x8_infty(); n * vecs_per_col];
     debug_assert!(vd.iter().all(simd::is_aligned));
     debug_assert!(vt.iter().all(simd::is_aligned));
-    let pack_simd_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
+    let pack_simd_row_block = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
         for (jv, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
             let mut vx_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
             let mut vy_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
@@ -34,25 +33,23 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     vd.par_chunks_mut(n)
         .zip(vt.par_chunks_mut(n))
         .enumerate()
-        .for_each(pack_simd_row);
+        .for_each(pack_simd_row_block);
     #[cfg(feature = "no-multi-thread")]
     vd.chunks_mut(n)
         .zip(vt.chunks_mut(n))
         .enumerate()
-        .for_each(pack_simd_row);
+        .for_each(pack_simd_row_block);
 
-    // Function: for some row i in d, compute all results for a row block in r,
-    // where the block contains rows equal to the length of a 256-bit f32 simd-vector
+    // Function: for 8 rows starting at row i*8 in d,
+    // compute all results for 8 rows starting at row i*8 into r
     let step_row = |(i, (r_row_block, vd_row)): (usize, (&mut [f32], &[f32x8]))| {
-        assert_eq!(vd_row.len(), n);
-        // Compute results for all combinations of simd-vector rows of vt and vd
+        // Chunk up vt into rows, each containing n f32x8 vectors, exactly as vd_row
         for (j, vt_row) in vt.chunks_exact(n).enumerate() {
-            assert_eq!(vt_row.len(), n);
-            // Intermediate results for simd::f32x8_LENGTH of rows
+            // Intermediate results for 8 rows
             let mut tmp = [simd::f32x8_infty(); simd::f32x8_LENGTH];
             // Horizontally compute 8 minimums from each pair of vertical vectors for this row block
             for (&d0, &t0) in vd_row.iter().zip(vt_row) {
-                // Compute permutations of simd-vector elements
+                // Compute permutations of f32x8 elements
                 let d2 = simd::swap(d0, 2);
                 let d4 = simd::swap(d0, 4);
                 let d6 = simd::swap(d4, 2);
@@ -67,15 +64,14 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 tmp[6] = simd::min(tmp[6], simd::add(d6, t0));
                 tmp[7] = simd::min(tmp[7], simd::add(d6, t1));
             }
-            // Swap all comparisons with t1 back so that we can extract the results with a straightforward XOR pattern
-            tmp[1] = simd::swap(tmp[1], 1);
-            tmp[3] = simd::swap(tmp[3], 1);
-            tmp[5] = simd::swap(tmp[5], 1);
-            tmp[7] = simd::swap(tmp[7], 1);
-            // Set 8 final results
+            // Swap all results compared against t1 to match the block_j XOR block_i
+            // pattern we are using to extract the results
+            for i in (1..8).step_by(2) {
+                tmp[i] = simd::swap(tmp[i], 1);
+            }
+            // Set 8 final results (i.e. 64 f32 results in total)
             for block_i in 0..simd::f32x8_LENGTH {
                 for (block_j, r_row) in r_row_block.chunks_exact_mut(n).enumerate() {
-                    assert_eq!(r_row.len(), n);
                     let res_i = block_j + i * simd::f32x8_LENGTH;
                     let res_j = block_i + j * simd::f32x8_LENGTH;
                     if res_i < n && res_j < n {
@@ -87,7 +83,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
         }
     };
-    // Chunk up r into row blocks containing 8 rows and vd into rows each containing n simd-vectors
+    // Chunk up r into row blocks containing 8 rows and vd into rows each containing n f32x8s
     #[cfg(not(feature = "no-multi-thread"))]
     r.par_chunks_mut(simd::f32x8_LENGTH * n)
         .zip(vd.par_chunks(n))

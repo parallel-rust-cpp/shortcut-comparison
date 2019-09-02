@@ -1,9 +1,8 @@
 use tools::{create_extern_c_wrapper, simd, simd::f32x8};
+use itertools::Itertools;
 // izip for zipping multiple iterators
 #[macro_use]
 extern crate itertools;
-// Destructure iterator into tuple
-use itertools::Itertools;
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;

@@ -21,9 +21,13 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // ANCHOR_END: init
     // ANCHOR: preprocess
     // Function: for one row of f32x8 vectors in vd and one row of f32x8 vectors in vt,
-    // copy all elements from row 'i' in d, packed into f32x8 vectors, into row 'i' of vd (vd_row),
+    // - copy all elements from row 'i' in d,
+    // - pack them into f32x8 vectors,
+    // - insert all into row 'i' of vd (vd_row)
     // and
-    // copy all elements from column 'i' in d, packed into f32x8 vectors, into row 'i' of vt (vt_row)
+    // - copy all elements from column 'i' in d,
+    // - pack them into f32x8 vectors,
+    // - insert all into row 'i' of vt (vt_row)
     let pack_simd_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
         // For every SIMD vector at row 'i', column 'jv' in vt and vd
         for (jv, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
