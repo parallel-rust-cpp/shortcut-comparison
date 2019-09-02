@@ -36,10 +36,12 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         let t_rows = t.chunks_exact(n);
         for (res, t_row) in r_row.iter_mut().zip(t_rows) {
             let mut v = std::f32::INFINITY;
+            // ANCHOR: step_row_inner
             for (&x, &y) in d_row.iter().zip(t_row) {
                 let z = x + y;
                 v = min(v, z);
             }
+            // ANCHOR_END: step_row_inner
             *res = v;
         }
     };
