@@ -10,7 +10,7 @@ use rayon::prelude::*;
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // ANCHOR: transpose
     // Transpose of d
-    let mut t = vec![0.0; n * n];
+    let mut t = std::vec![0.0; n * n];
     // Function: for some column j in d, copy all elements of that column into row i in t (t_row)
     let transpose_column = |(j, t_row): (usize, &mut [f32])| {
         for (i, x) in t_row.iter_mut().enumerate() {
