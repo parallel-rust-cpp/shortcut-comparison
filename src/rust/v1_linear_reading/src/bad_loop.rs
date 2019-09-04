@@ -11,7 +11,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 let x = d[n*i + k];
                 let y = t[n*j + k];
                 let z = x + y;
-                v = v.min(v, z);
+                v = v.min(z);
             }
             // ANCHOR_END: step_row_inner
             *res = v;
@@ -24,3 +24,12 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .for_each(step_row);
     // ANCHOR_END: step_row
 }
+
+    // ANCHOR: step_row_inner_no_nan
+    for k in 0..n {
+        let x = d[n*i + k];
+        let y = t[n*j + k];
+        let z = x + y;
+        v = if v < z { v } else { z }
+    }
+    // ANCHOR_END: step_row_inner_no_nan

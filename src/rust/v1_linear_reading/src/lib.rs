@@ -30,20 +30,17 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(transpose_column);
     // ANCHOR: step_row
-    // Function: for some row i in d (d_row) and all rows t (t_rows), compute n results into a row in r (r_row)
+    // Function: for some row i in d (d_row) and all rows t (t_rows),
+    // compute n results into a row in r (r_row)
     let step_row = |(r_row, d_row): (&mut [f32], &[f32])| {
-        // t is immutable, so we can share it in concurrent invocations of this function
         let t_rows = t.chunks_exact(n);
+        // ANCHOR: step_row_inner
         for (res, t_row) in r_row.iter_mut().zip(t_rows) {
-            let mut v = std::f32::INFINITY;
-            // ANCHOR: step_row_inner
-            for (&x, &y) in d_row.iter().zip(t_row) {
-                let z = x + y;
-                v = min(v, z);
-            }
-            // ANCHOR_END: step_row_inner
-            *res = v;
+            *res = d_row.iter()
+                        .zip(t_row)
+                        .fold(std::f32::INFINITY, |v, (&x, &y)| min(v, x + y));
         }
+        // ANCHOR_END: step_row_inner
     };
     // Partition r and d into slices, each containing a single row of r and d,
     // and apply the function on the row pairs
