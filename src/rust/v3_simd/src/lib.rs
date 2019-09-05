@@ -67,13 +67,15 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // Function: for a row of f32x8 elements from vd, compute a row of f32 results into r
     let step_row = |(r_row, vd_row): (&mut [f32], &[f32x8])| {
         let vt_rows = vt.chunks_exact(vecs_per_row);
+        // ANCHOR: step_row_inner
         for (res, vt_row) in r_row.iter_mut().zip(vt_rows) {
-            let mut tmp = simd::f32x8_infty();
-            for (&x, &y) in vd_row.iter().zip(vt_row) {
-                tmp = simd::min(tmp, simd::add(x, y));
-            }
+            let tmp = vd_row.iter()
+                            .zip(vt_row)
+                            .fold(simd::f32x8_infty(),
+                                  |v, (&x, &y)| simd::min(v, simd::add(x, y)));
             *res = simd::horizontal_min(tmp);
         }
+        // ANCHOR_END: step_row_inner
     };
     // ANCHOR_END: step_row
     #[cfg(not(feature = "no-multi-thread"))]
