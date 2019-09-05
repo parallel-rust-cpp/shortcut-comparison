@@ -12,10 +12,12 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     const BLOCK_SIZE: usize = 4;
     let blocks_per_row = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
     let n_padded = blocks_per_row * BLOCK_SIZE;
-    // d and transpose of d with extra room at the end of each row, both initially filled with f32::INFINITY
+    // d and transpose of d with extra room at the end of each row,
+    // both initially filled with f32::INFINITY
     let mut vd = std::vec![std::f32::INFINITY; n_padded * n];
     let mut vt = std::vec![std::f32::INFINITY; n_padded * n];
-    // Function: for one row of vd and vt, copy a row at 'i' of d into vd and column at 'i' of d into vt
+    // Function: for one row of vd and vt,
+    // copy a row at 'i' of d into vd and column at 'i' of d into vt
     let preprocess_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32], &mut [f32]))| {
         for (j, (x, y)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
             if i < n && j < n {

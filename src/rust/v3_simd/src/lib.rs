@@ -43,7 +43,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                     *y = d[n * j + i];
                 }
             }
-            // Initialize f32x8 vectors from buffer contents and assign them into the std::vec::Vec containers
+            // Initialize f32x8 vectors from buffer contents
+            // and assign them into the std::vec::Vec containers
             *vx = simd::from_slice(&vx_tmp);
             *vy = simd::from_slice(&vy_tmp);
         }
