@@ -44,12 +44,13 @@ pub fn from_slice(s: &[f32]) -> f32x8 {
 /// e.g. for width = 1, control is 10_11_00_01.
 /// Reading from right to left in 2 bit chunks we get (1, 0, 3, 2) for the 1st 128-bit lane,
 /// and (5, 4, 7, 6) for the 2nd 128-bit lane.
+/// Width 4 swaps both 128-bit lanes.
 ///
 #[inline]
 pub fn swap(v: f32x8, width: i8) -> f32x8 {
     match width {
-        1 => unsafe { _mm256_shuffle_ps(v, v, 0b_10_11_00_01) },
-        2 => unsafe { _mm256_shuffle_ps(v, v, 0b_01_00_11_10) },
+        1 => unsafe { _mm256_permute_ps(v, 0b_10_11_00_01) },
+        2 => unsafe { _mm256_permute_ps(v, 0b_01_00_11_10) },
         4 => unsafe { _mm256_permute2f128_ps(v, v, 1) },
         _ => panic!("Invalid shuffle control for 256-bit vector, must be 1, 2, or 4"),
     }
