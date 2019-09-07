@@ -79,8 +79,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             //// ANCHOR: step_row_block_inner_loop
             // Move horizontally, computing 3 x 3 results for each column
             // At each iteration, load two 'vertical stripes' of 3 f32x8 vectors
-            let block_combinations = izip!(vd_row_0, vd_row_1, vd_row_2, vt_row_0, vt_row_1, vt_row_2);
-            for (&d0, &d1, &d2, &t0, &t1, &t2) in block_combinations {
+            let rows = izip!(vd_row_0, vd_row_1, vd_row_2, vt_row_0, vt_row_1, vt_row_2);
+            for (&d0, &d1, &d2, &t0, &t1, &t2) in rows {
                 // Combine all 9 pairs of f32x8 vectors from 6 rows at every column
                 tmp0 = simd::min(tmp0, simd::add(d0, t0));
                 tmp1 = simd::min(tmp1, simd::add(d0, t1));
@@ -92,17 +92,17 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 tmp7 = simd::min(tmp7, simd::add(d2, t1));
                 tmp8 = simd::min(tmp8, simd::add(d2, t2));
             }
-            let tmp = [tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8];
             //// ANCHOR_END: step_row_block_inner_loop
             //// ANCHOR: step_row_block_results
+            let tmp = [tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8];
             // Set 9 final results for all combinations of 3 rows starting at i and 3 rows starting at j
             for (block_i, (r_row, tmp_row)) in r_row_block.chunks_exact_mut(n).zip(tmp.chunks_exact(BLOCK_HEIGHT)).enumerate() {
-                for (block_j, tmp_res) in tmp_row.iter().enumerate() {
+                for (block_j, &tmp_res) in tmp_row.iter().enumerate() {
                     let res_i = i * BLOCK_HEIGHT + block_i;
                     let res_j = j * BLOCK_HEIGHT + block_j;
                     if res_i < n && res_j < n {
                         // Reduce one f32x8 to the final result for one pair of rows
-                        r_row[res_j] = simd::horizontal_min(*tmp_res);
+                        r_row[res_j] = simd::horizontal_min(tmp_res);
                     }
                 }
             }
