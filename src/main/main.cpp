@@ -30,7 +30,7 @@ void benchmark(const unsigned n) noexcept {
     std::cout << std::setprecision(7) << delta_seconds.count() << std::endl;
     // Do nothing with the results explicitly, so that the compiler will not optimize away something
     std::ofstream outf("/dev/null");
-    std::copy(result.begin(), result.end(), std::ostream_iterator<float>(outf, ","));
+    std::copy(result.begin(), result.begin() + n, std::ostream_iterator<float>(outf, ""));
 }
 
 void test(const unsigned n) noexcept {
