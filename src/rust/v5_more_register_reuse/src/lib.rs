@@ -47,14 +47,19 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         for (j, vt_row) in vt.chunks_exact(n).enumerate() {
             // Intermediate results for 8 rows
             let mut tmp = [simd::f32x8_infty(); simd::f32x8_LENGTH];
-            // Horizontally compute 8 minimums from each pair of vertical vectors for this row block
+            // Iterate horizontally over both row, permute each SIMD vector to create 8 unique combinations,
+            // and compute 8 minimums from all combinations
             for (&d0, &t0) in vd_row.iter().zip(vt_row) {
                 // Compute permutations of f32x8 elements
+                // 2 3 0 1 6 7 4 5
                 let d2 = simd::swap(d0, 2);
+                // 4 5 6 7 0 1 2 3
                 let d4 = simd::swap(d0, 4);
+                // 6 7 4 5 2 3 0 1
                 let d6 = simd::swap(d4, 2);
+                // 1 0 3 2 5 4 7 6
                 let t1 = simd::swap(t0, 1);
-                // Compute 8 independent, intermediate results for 8 rows by combining each permutation
+                // Compute 8 independent, intermediate results for 8 rows
                 tmp[0] = simd::min(tmp[0], simd::add(d0, t0));
                 tmp[1] = simd::min(tmp[1], simd::add(d0, t1));
                 tmp[2] = simd::min(tmp[2], simd::add(d2, t0));
