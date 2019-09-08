@@ -70,8 +70,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         row_pairs.sort_unstable();
     }
 
-    // Working memory for each thread to update their results
-    // When enumerated, also conveniently indexes the Z-order curve keys in 8 element chunks
+    // Non-overlapping working memory for threads to update their results
+    // When enumerated in 8 element chunks, indexes the Z-order curve keys
     let mut partial_results = std::vec![simd::f32x8_infty(); vecs_per_col * vecs_per_col * simd::f32x8_LENGTH];
 
     // Process vd and vt in Z-order one vertical stripe at a time, writing partial results in parallel
@@ -84,7 +84,6 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         let step_partial_block = |(z, partial_block): (usize, &mut [f32x8])| {
             let (_, i, j) = row_pairs[z];
             // Copy results from previous pass over previous stripe
-            assert_eq!(partial_block.len(), simd::f32x8_LENGTH);
             let mut tmp = [simd::f32x8_infty(); simd::f32x8_LENGTH];
             tmp.copy_from_slice(&partial_block);
             // Get slices over current stripes of row i and column j
@@ -120,6 +119,9 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             .for_each(step_partial_block);
     }
 
+    // TODO remove rz and write results directly into r by reading
+    // results from partial_results linearly according to row i and col j of r
+
     let mut rz = std::vec![0.0; vecs_per_col * vecs_per_col * simd::f32x8_LENGTH * simd::f32x8_LENGTH];
     let set_z_order_result_block = |(z, (rz_block_pair, tmp)): (usize, (&mut [f32], &mut [f32x8]))| {
         let (_, i, j) = row_pairs[z];
@@ -150,9 +152,6 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .zip(partial_results.chunks_mut(simd::f32x8_LENGTH))
         .enumerate()
         .for_each(set_z_order_result_block);
-
-    // TODO is it possible to write results into r in Z-order in parallel?
-    // then the sequential step below would become redundant
 
     // Finally, copy Z-order results from rz into r in proper order
     for (rz_block_pair, (_, i, j)) in rz.chunks_exact(simd::f32x8_LENGTH * simd::f32x8_LENGTH).zip(row_pairs) {
