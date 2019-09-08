@@ -121,14 +121,15 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
 
     // TODO remove rz and write results directly into r by reading
     // results from partial_results linearly according to row i and col j of r
+    // This requires a mapping from (i, j) into z
 
     let mut rz = std::vec![0.0; vecs_per_col * vecs_per_col * simd::f32x8_LENGTH * simd::f32x8_LENGTH];
     let set_z_order_result_block = |(z, (rz_block_pair, tmp)): (usize, (&mut [f32], &mut [f32x8]))| {
         let (_, i, j) = row_pairs[z];
-        tmp[1] = simd::swap(tmp[1], 1);
-        tmp[3] = simd::swap(tmp[3], 1);
-        tmp[5] = simd::swap(tmp[5], 1);
-        tmp[7] = simd::swap(tmp[7], 1);
+        // Result extraction as in v5
+        for i in (1..simd::f32x8_LENGTH).step_by(2) {
+            tmp[i] = simd::swap(tmp[i], 1);
+        }
         for (block_i, rz_block) in rz_block_pair.chunks_exact_mut(simd::f32x8_LENGTH).enumerate() {
             for (block_j, res_z) in rz_block.iter_mut().enumerate() {
                 let res_i = block_j + i * simd::f32x8_LENGTH;
