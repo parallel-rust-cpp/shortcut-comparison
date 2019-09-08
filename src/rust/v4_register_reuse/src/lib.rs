@@ -17,7 +17,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     let blocks_per_col = (n + BLOCK_HEIGHT - 1) / BLOCK_HEIGHT;
     let vecs_per_row = (n + simd::f32x8_LENGTH - 1) / simd::f32x8_LENGTH;
     let padded_height = BLOCK_HEIGHT * blocks_per_col;
-    // Preprocess exactly as in v3_simd, but make sure the amount of rows is divisible by BLOCK_HEIGHT
+    // Preprocess exactly as in v3_simd,
+    // but make sure the amount of rows is divisible by BLOCK_HEIGHT
     let mut vd = std::vec![simd::f32x8_infty(); padded_height * vecs_per_row];
     let mut vt = std::vec![simd::f32x8_infty(); padded_height * vecs_per_row];
     // ANCHOR_END: init
@@ -61,6 +62,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             //// ANCHOR_END: step_row_block_head
             //// ANCHOR: step_row_block_init
             // Partial results for 9 f32x8 row pairs
+            // All as separate variables to encourage the compiler
+            // to keep these values in 9 registers for the duration of the loop
             let mut tmp0 = simd::f32x8_infty();
             let mut tmp1 = simd::f32x8_infty();
             let mut tmp2 = simd::f32x8_infty();
