@@ -17,17 +17,19 @@ float next_float() {
     return floats(e);
 }
 
-void benchmark(const unsigned n) noexcept {
+void benchmark(unsigned n, unsigned iterations) noexcept {
     std::vector<float> data(n*n);
     std::generate(data.begin(), data.end(), next_float);
     std::vector<float> result(n*n);
-
-    const auto time_start = std::chrono::high_resolution_clock::now();
-    step(result.data(), data.data(), n);
-    const auto time_end = std::chrono::high_resolution_clock::now();
-
-    const std::chrono::duration<float> delta_seconds = time_end - time_start;
-    std::cout << std::setprecision(7) << delta_seconds.count() << std::endl;
+    while (iterations--) {
+        const auto time_start = std::chrono::high_resolution_clock::now();
+        step(result.data(), data.data(), n);
+        const auto time_end = std::chrono::high_resolution_clock::now();
+        const std::chrono::duration<float> delta_seconds = time_end - time_start;
+        std::cout << std::setprecision(7) << delta_seconds.count() << std::endl;
+        std::generate(data.begin(), data.end(), next_float);
+        std::fill(result.begin(), result.end(), 0.0);
+    }
     // Do nothing with the results explicitly, so that the compiler will not optimize away something
     std::ofstream outf("/dev/null");
     std::copy(result.begin(), result.begin() + n, std::ostream_iterator<float>(outf, ""));
@@ -55,12 +57,6 @@ void test(const unsigned n) noexcept {
 }
 
 void run_benchmark(const unsigned n, const unsigned iterations) {
-    std::cout << "for " << iterations << " iterations"
-              << " with input containing "
-              << n*n << " elements" << std::endl;
-    for (auto i = 0u; i < iterations; ++i) {
-        benchmark(n);
-    }
 }
 
 void run_test(const unsigned n, const unsigned iterations) {
@@ -107,8 +103,10 @@ int main(int argc, const char** argv) {
     const unsigned iterations = argc == 4 ? std::atoi(argv[3]) : 1;
 
     if (command == "benchmark") {
-        std::cout << "benchmarking " << argv[0] << ' ' << std::flush;
-        run_benchmark(n, iterations);
+        std::cout << "benchmarking " << argv[0] << ' ' << "for "
+                  << iterations << " iterations with input containing "
+                  << n*n << " elements" << std::endl;
+        benchmark(n, iterations);
     } else if (command == "test") {
         std::cout << "testing " << argv[0] << ' ' << std::flush;
         run_test(n, iterations);
