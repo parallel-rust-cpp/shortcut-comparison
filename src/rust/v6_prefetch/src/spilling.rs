@@ -39,6 +39,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(pack_simd_row);
 
+    // ANCHOR: step_row_block
+    //// ANCHOR: step_row_block_init
     // Everything is exactly as in v5, but we add some prefetch instructions in the innermost loop
     let step_row_block = |(r_row_block, vd_row): (&mut [f32], &[f32x8])| {
         // Create const raw pointers for specifying addresses to prefetch
@@ -46,6 +48,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         const PREFETCH_LENGTH: usize = 20;
         for (j, vt_row) in vt.chunks_exact(n).enumerate() {
             let vt_row_ptr = vt_row.as_ptr();
+            //// ANCHOR_END: step_row_block_init
+            //// ANCHOR: step_row_block_inner
             let mut tmp = [simd::f32x8_infty(); simd::f32x8_LENGTH];
             for (col, (&d0, &t0)) in vd_row.iter().zip(vt_row).enumerate() {
                 // Insert prefetch hints for fetching the cache line containing
@@ -65,6 +69,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 tmp[6] = simd::min(tmp[6], simd::add(d6, t0));
                 tmp[7] = simd::min(tmp[7], simd::add(d6, t1));
             }
+            //// ANCHOR_END: step_row_block_inner
             for i in (1..simd::f32x8_LENGTH).step_by(2) {
                 tmp[i] = simd::swap(tmp[i], 1);
             }
@@ -80,6 +85,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
         }
     };
+    // ANCHOR_END: step_row_block
     #[cfg(not(feature = "no-multi-thread"))]
     r.par_chunks_mut(simd::f32x8_LENGTH * n)
         .zip(vd.par_chunks(n))

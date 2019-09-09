@@ -56,10 +56,12 @@ pub fn swap(v: f32x8, width: i8) -> f32x8 {
     }
 }
 
+// ANCHOR: prefetch
 #[inline]
 pub fn prefetch(p: *const f32x8, offset: isize) {
     unsafe { _mm_prefetch(p.offset(offset) as *const i8, _MM_HINT_T0) }
 }
+// ANCHOR_END: prefetch
 
 /// Use an index to extract a single f32 from a 256-bit vector of single precision floats
 #[inline]

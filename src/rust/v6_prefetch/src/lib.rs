@@ -39,7 +39,10 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .enumerate()
         .for_each(pack_simd_row);
 
-    // Everything is exactly as in v5, but we add some prefetch instructions in the innermost loop
+    // ANCHOR: step_row_block
+    // Everything is mostly as in v5,
+    // but we add some prefetch instructions in the innermost loop,
+    // and unroll the tmp results array to avoid register spilling
     let step_row_block = |(r_row_block, vd_row): (&mut [f32], &[f32x8])| {
         // Create const raw pointers for specifying addresses to prefetch
         let vd_row_ptr = vd_row.as_ptr();
@@ -90,10 +93,13 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
             }
         }
     };
+    // ANCHOR_END: step_row_block
     #[cfg(not(feature = "no-multi-thread"))]
+    // ANCHOR: step_row_block_apply
     r.par_chunks_mut(simd::f32x8_LENGTH * n)
         .zip(vd.par_chunks(n))
         .for_each(step_row_block);
+    // ANCHOR_END: step_row_block_apply
     #[cfg(feature = "no-multi-thread")]
     r.chunks_mut(simd::f32x8_LENGTH * n)
         .zip(vd.chunks(n))
