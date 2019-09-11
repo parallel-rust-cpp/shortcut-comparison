@@ -17,8 +17,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     // ANCHOR_END: init
 
     // ANCHOR: interleave
-    // Build a Z-order curve iteration pattern of pairs (i, j) by using interleaved bits of i and j as a sort key
-    // Init vector of 3-tuples (ij, i, j)
+    // Build a Z-order curve iteration pattern of pairs (i, j)
+    // by using interleaved bits of i and j as a sort key
     let mut row_pairs = std::vec![(0, 0, 0); vecs_per_col * vecs_per_col];
     // Define a function that interleaves one row of indexes
     let interleave_row = |(i, row): (usize, &mut [(usize, usize, usize)])| {
@@ -32,13 +32,19 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     {
     // ANCHOR: interleave_apply
     // Apply the function independently on all rows and sort by ija
-    row_pairs.par_chunks_mut(vecs_per_col).enumerate().for_each(interleave_row);
+    row_pairs
+        .par_chunks_mut(vecs_per_col)
+        .enumerate()
+        .for_each(interleave_row);
     row_pairs.par_sort_unstable();
     // ANCHOR_END: interleave_apply
     }
     #[cfg(feature = "no-multi-thread")]
     {
-        row_pairs.chunks_mut(vecs_per_col).enumerate().for_each(interleave_row);
+        row_pairs
+            .chunks_mut(vecs_per_col)
+            .enumerate()
+            .for_each(interleave_row);
         row_pairs.sort_unstable();
     }
 
@@ -146,7 +152,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     #[cfg(not(feature = "no-multi-thread"))]
     {
     // ANCHOR: replace_sort_key_apply
-    row_pairs.par_chunks_mut(vecs_per_col)
+    row_pairs
+        .par_chunks_mut(vecs_per_col)
         .enumerate()
         .for_each(replace_z_index_row);
     row_pairs.par_sort_unstable_by_key(key_ij);
@@ -154,7 +161,8 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
     }
     #[cfg(feature = "no-multi-thread")]
     {
-        row_pairs.chunks_mut(vecs_per_col)
+        row_pairs
+            .chunks_mut(vecs_per_col)
             .enumerate()
             .for_each(replace_z_index_row);
         row_pairs.sort_unstable_by_key(key_ij);

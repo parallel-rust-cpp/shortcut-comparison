@@ -39,6 +39,7 @@ pub fn min(x: f32, y: f32) -> f32 {
 #[inline]
 pub fn z_encode(x: u32, y: u32) -> u32 {
     let odd_bits = 0x55555555;
-    unsafe { _pdep_u32(x, odd_bits) | (_pdep_u32(y, odd_bits) << 1) }
+    let even_bits = 0xAAAAAAAA;
+    unsafe { _pdep_u32(x, odd_bits) | _pdep_u32(y, even_bits) }
 }
 // ANCHOR_END: z_encode
