@@ -1,4 +1,8 @@
 #![feature(core_intrinsics)]
+extern crate core;
+// For interleaving bits to construct Z-order curve
+use core::arch::x86_64::_pdep_u32;
+
 pub mod simd;
 pub mod timer;
 
@@ -30,3 +34,11 @@ pub fn min(x: f32, y: f32) -> f32 {
     if x < y { x } else { y }
 }
 // ANCHOR_END: min
+
+// ANCHOR: z_encode
+#[inline]
+pub fn z_encode(x: u32, y: u32) -> u32 {
+    let odd_bits = 0x55555555;
+    unsafe { _pdep_u32(x, odd_bits) | (_pdep_u32(y, odd_bits) << 1) }
+}
+// ANCHOR_END: z_encode

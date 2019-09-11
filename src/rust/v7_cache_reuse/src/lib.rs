@@ -1,8 +1,4 @@
-use tools::{create_extern_c_wrapper, simd, simd::f32x8};
-
-extern crate core;
-// For interleaving bits to construct Z-order curve
-use core::arch::x86_64::_pdep_u32;
+use tools::{create_extern_c_wrapper, simd, simd::f32x8, z_encode};
 
 #[cfg(not(feature = "no-multi-thread"))]
 extern crate rayon;
@@ -12,57 +8,33 @@ use rayon::prelude::*;
 
 #[inline]
 fn _step(r: &mut [f32], d: &[f32], n: usize) {
+    // ANCHOR: init
     // How many adjacent columns to process during one pass
-    // Smaller numbers improve cache locality but adds overhead from having to merge partial results
-    const VERTICAL_STRIPE_WIDTH: usize = 500;
-
+    // Smaller numbers improve cache locality but add overhead
+    // from having to merge partial results
+    const COLS_PER_STRIPE: usize = 500;
     let vecs_per_col = (n + simd::f32x8_LENGTH - 1) / simd::f32x8_LENGTH;
+    // ANCHOR_END: init
 
-    let mut vd = std::vec![simd::f32x8_infty(); n * vecs_per_col];
-    let mut vt = std::vec![simd::f32x8_infty(); n * vecs_per_col];
-    debug_assert!(vd.iter().all(simd::is_aligned));
-    debug_assert!(vt.iter().all(simd::is_aligned));
-    let pack_simd_row = |(i, (vd_row, vt_row)): (usize, (&mut [f32x8], &mut [f32x8]))| {
-        for (jv, (vx, vy)) in vd_row.iter_mut().zip(vt_row.iter_mut()).enumerate() {
-            let mut vx_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
-            let mut vy_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
-            for (b, (x, y)) in vx_tmp.iter_mut().zip(vy_tmp.iter_mut()).enumerate() {
-                let j = i * simd::f32x8_LENGTH + b;
-                if i < n && j < n {
-                    *x = d[n * j + jv];
-                    *y = d[n * jv + j];
-                }
-            }
-            *vx = simd::from_slice(&vx_tmp);
-            *vy = simd::from_slice(&vy_tmp);
-        }
-    };
-    #[cfg(not(feature = "no-multi-thread"))]
-    vd.par_chunks_mut(n)
-        .zip(vt.par_chunks_mut(n))
-        .enumerate()
-        .for_each(pack_simd_row);
-    #[cfg(feature = "no-multi-thread")]
-    vd.chunks_mut(n)
-        .zip(vt.chunks_mut(n))
-        .enumerate()
-        .for_each(pack_simd_row);
-
+    // ANCHOR: interleave
     // Build a Z-order curve iteration pattern of pairs (i, j) by using interleaved bits of i and j as a sort key
     // Init vector of 3-tuples (ij, i, j)
     let mut row_pairs = std::vec![(0, 0, 0); vecs_per_col * vecs_per_col];
     // Define a function that interleaves one row of indexes
     let interleave_row = |(i, row): (usize, &mut [(usize, usize, usize)])| {
         for (j, x) in row.iter_mut().enumerate() {
-            let ij = unsafe { _pdep_u32(i as u32, 0x55555555) | _pdep_u32(j as u32, 0xAAAAAAAA) };
-            *x = (ij as usize, i, j);
+            let z = z_encode(i as u32, j as u32);
+            *x = (z as usize, i, j);
         }
     };
-    // Apply the function independently on all rows and sort by ija
+    // ANCHOR_END: interleave
     #[cfg(not(feature = "no-multi-thread"))]
     {
-        row_pairs.par_chunks_mut(vecs_per_col).enumerate().for_each(interleave_row);
-        row_pairs.par_sort_unstable();
+    // ANCHOR: interleave_apply
+    // Apply the function independently on all rows and sort by ija
+    row_pairs.par_chunks_mut(vecs_per_col).enumerate().for_each(interleave_row);
+    row_pairs.par_sort_unstable();
+    // ANCHOR_END: interleave_apply
     }
     #[cfg(feature = "no-multi-thread")]
     {
@@ -70,26 +42,63 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         row_pairs.sort_unstable();
     }
 
+    // ANCHOR: init_stripe_data
+    // We'll be processing the input one stripe at a time
+    let mut vd = std::vec![simd::f32x8_infty(); COLS_PER_STRIPE * vecs_per_col];
+    let mut vt = std::vec![simd::f32x8_infty(); COLS_PER_STRIPE * vecs_per_col];
     // Non-overlapping working memory for threads to update their results
     // When enumerated in 8 element chunks, indexes the Z-order curve keys
     let mut partial_results = std::vec![simd::f32x8_infty(); vecs_per_col * vecs_per_col * simd::f32x8_LENGTH];
+    // ANCHOR_END: init_stripe_data
 
+    // ANCHOR: stripe_loop_head
     // Process vd and vt in Z-order one vertical stripe at a time, writing partial results in parallel
-    let num_vertical_stripes = (n + VERTICAL_STRIPE_WIDTH - 1) / VERTICAL_STRIPE_WIDTH;
+    let num_vertical_stripes = (n + COLS_PER_STRIPE - 1) / COLS_PER_STRIPE;
     for stripe in 0..num_vertical_stripes {
-        let col_begin = stripe * VERTICAL_STRIPE_WIDTH;
-        let next_begin = (stripe + 1) * VERTICAL_STRIPE_WIDTH;
-        let col_end = n.min(next_begin);
-        // This function computes one block of results into partial_results
-        let step_partial_block = |(z, partial_block): (usize, &mut [f32x8])| {
-            let (_, i, j) = row_pairs[z];
+        let col_begin = stripe * COLS_PER_STRIPE;
+        let col_end = n.min((stripe + 1) * COLS_PER_STRIPE);
+        // ANCHOR_END: stripe_loop_head
+        // Preprocessing as in v5, but one vertical stripe at a time
+        let pack_simd_row = |(i, (vd_stripe, vt_stripe)): (usize, (&mut [f32x8], &mut [f32x8]))| {
+            for (jv, (vx, vy)) in vd_stripe.iter_mut().zip(vt_stripe.iter_mut()).enumerate() {
+                let mut vx_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
+                let mut vy_tmp = [std::f32::INFINITY; simd::f32x8_LENGTH];
+                for (b, (x, y)) in vx_tmp.iter_mut().zip(vy_tmp.iter_mut()).enumerate() {
+                    let d_row = i * simd::f32x8_LENGTH + b;
+                    let d_col = col_begin + jv;
+                    if d_row < n && d_col < col_end {
+                        *x = d[n * d_row + d_col];
+                        *y = d[n * d_col + d_row];
+                    }
+                }
+                *vx = simd::from_slice(&vx_tmp);
+                *vy = simd::from_slice(&vy_tmp);
+            }
+        };
+        #[cfg(not(feature = "no-multi-thread"))]
+        vd.par_chunks_mut(COLS_PER_STRIPE)
+            .zip(vt.par_chunks_mut(COLS_PER_STRIPE))
+            .enumerate()
+            .for_each(pack_simd_row);
+        #[cfg(feature = "no-multi-thread")]
+        vd.chunks_mut(COLS_PER_STRIPE)
+            .zip(vt.chunks_mut(COLS_PER_STRIPE))
+            .enumerate()
+            .for_each(pack_simd_row);
+        // ANCHOR_END: stripe_loop_head
+        // ANCHOR: stripe_loop_step_partial_block
+        // Function: for a f32x8 block of partial results and indexes row i col j,
+        // 1. Load tmp from partial results
+        // 2. Accumulate results for row i and column j into tmp
+        // 3. Write tmp into the original partial results block
+        let step_partial_block = |(prev_tmp, &(_, i, j)): (&mut [f32x8], &(usize, usize, usize))| {
             // Copy results from previous pass over previous stripe
             let mut tmp = [simd::f32x8_infty(); simd::f32x8_LENGTH];
-            tmp.copy_from_slice(&partial_block);
+            tmp.copy_from_slice(&prev_tmp);
             // Get slices over current stripes of row i and column j
-            let vd_stripe = &vd[(n * i + col_begin)..(n * i + col_end)];
-            let vt_stripe = &vt[(n * j + col_begin)..(n * j + col_end)];
-            for (&d0, &t0) in vd_stripe.iter().zip(vt_stripe) {
+            let vd_row = &vd[(COLS_PER_STRIPE * i)..(COLS_PER_STRIPE * (i + 1))];
+            let vt_row = &vt[(COLS_PER_STRIPE * j)..(COLS_PER_STRIPE * (j + 1))];
+            for (&d0, &t0) in vd_row.iter().zip(vt_row) {
                 let d2 = simd::swap(d0, 2);
                 let d4 = simd::swap(d0, 4);
                 let d6 = simd::swap(d4, 2);
@@ -104,68 +113,91 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
                 tmp[7] = simd::min(tmp[7], simd::add(d6, t1));
             }
             // Store partial results (8 vecs of type f32x8) to global memory
-            partial_block.copy_from_slice(&tmp);
+            // for processing next stripe
+            prev_tmp.copy_from_slice(&tmp);
         };
-        // Process current stripe
+        // ANCHOR_END: stripe_loop_step_partial_block
         #[cfg(not(feature = "no-multi-thread"))]
+        // ANCHOR: stripe_loop_step_partial_block_apply
+        // Process current stripe
         partial_results
             .par_chunks_mut(simd::f32x8_LENGTH)
-            .enumerate()
+            .zip(row_pairs.par_iter())
             .for_each(step_partial_block);
+        // ANCHOR_END: stripe_loop_step_partial_block_apply
         #[cfg(feature = "no-multi-thread")]
         partial_results
             .chunks_mut(simd::f32x8_LENGTH)
-            .enumerate()
+            .zip(row_pairs.iter())
             .for_each(step_partial_block);
     }
 
-    // TODO remove rz and write results directly into r by reading
-    // results from partial_results linearly according to row i and col j of r
-    // This requires a mapping from (i, j) into z
-
-    let mut rz = std::vec![0.0; vecs_per_col * vecs_per_col * simd::f32x8_LENGTH * simd::f32x8_LENGTH];
-    let set_z_order_result_block = |(z, (rz_block_pair, tmp)): (usize, (&mut [f32], &mut [f32x8]))| {
-        let (_, i, j) = row_pairs[z];
-        // Result extraction as in v5
-        for i in (1..simd::f32x8_LENGTH).step_by(2) {
-            tmp[i] = simd::swap(tmp[i], 1);
+    // ANCHOR: replace_sort_key
+    // Replace ij sorting key by linear index to get a mapping to partial_results,
+    // then sort row_pairs by (i, j)
+    let replace_z_index_row = |(z_row, index_row): (usize, &mut [(usize, usize, usize)])| {
+        for (z, idx) in index_row.iter_mut().enumerate() {
+            let (_, i, j) = *idx;
+            *idx = (z_row * vecs_per_col + z, i, j);
         }
-        for (block_i, rz_block) in rz_block_pair.chunks_exact_mut(simd::f32x8_LENGTH).enumerate() {
-            for (block_j, res_z) in rz_block.iter_mut().enumerate() {
-                let res_i = block_j + i * simd::f32x8_LENGTH;
-                let res_j = block_i + j * simd::f32x8_LENGTH;
-                if res_i < n && res_j < n {
-                    let v = tmp[block_j ^ block_i];
-                    let vi = block_i as u8;
-                    *res_z = simd::extract(v, vi);
+    };
+    let key_ij = |&idx: &(usize, usize, usize)| { (idx.1, idx.2) };
+    // ANCHOR_END: replace_sort_key
+    #[cfg(not(feature = "no-multi-thread"))]
+    {
+    // ANCHOR: replace_sort_key_apply
+    row_pairs.par_chunks_mut(vecs_per_col)
+        .enumerate()
+        .for_each(replace_z_index_row);
+    row_pairs.par_sort_unstable_by_key(key_ij);
+    // ANCHOR_END: replace_sort_key_apply
+    }
+    #[cfg(feature = "no-multi-thread")]
+    {
+        row_pairs.chunks_mut(vecs_per_col)
+            .enumerate()
+            .for_each(replace_z_index_row);
+        row_pairs.sort_unstable_by_key(key_ij);
+    }
+
+    // ANCHOR: set_z_order_result_block
+    // Function: for 8 rows in r starting at row i*8,
+    // read partial results at z-index corresponding to each row i and column j
+    // and write them to r
+    let set_z_order_result_block = |(i, r_row_block): (usize, &mut [f32])| {
+        for j in 0..vecs_per_col {
+            // Get z-order index for row i and column j
+            let z = row_pairs[i * vecs_per_col + j].0 * simd::f32x8_LENGTH;
+            // Load tmp from z-order partial results for this i, j pair
+            let mut tmp = [simd::f32x8_infty(); simd::f32x8_LENGTH];
+            tmp.copy_from_slice(&partial_results[z..z + simd::f32x8_LENGTH]);
+            // Continue exactly as in v5
+            for k in (1..simd::f32x8_LENGTH).step_by(2) {
+                tmp[k] = simd::swap(tmp[k], 1);
+            }
+            for (tmp_i, r_row) in r_row_block.chunks_exact_mut(n).enumerate() {
+                for tmp_j in 0..simd::f32x8_LENGTH {
+                    let res_j = j * simd::f32x8_LENGTH + tmp_j;
+                    if res_j < n {
+                        let v = tmp[tmp_i ^ tmp_j];
+                        let vi = tmp_j as u8;
+                        r_row[res_j] = simd::extract(v, vi);
+                    }
                 }
             }
         }
     };
-    // Extract final results in Z-order into rz
+    // ANCHOR_END: set_z_order_result_block
     #[cfg(not(feature = "no-multi-thread"))]
-    rz.par_chunks_mut(simd::f32x8_LENGTH * simd::f32x8_LENGTH)
-        .zip(partial_results.par_chunks_mut(simd::f32x8_LENGTH))
+    // ANCHOR: set_z_order_result_block_apply
+    r.par_chunks_mut(simd::f32x8_LENGTH * n)
         .enumerate()
         .for_each(set_z_order_result_block);
+    // ANCHOR_END: set_z_order_result_block_apply
     #[cfg(feature = "no-multi-thread")]
-    rz.chunks_mut(simd::f32x8_LENGTH * simd::f32x8_LENGTH)
-        .zip(partial_results.chunks_mut(simd::f32x8_LENGTH))
+    r.chunks_mut(simd::f32x8_LENGTH * n)
         .enumerate()
         .for_each(set_z_order_result_block);
-
-    // Finally, copy Z-order results from rz into r in proper order
-    for (rz_block_pair, (_, i, j)) in rz.chunks_exact(simd::f32x8_LENGTH * simd::f32x8_LENGTH).zip(row_pairs) {
-        for (block_i, rz_block) in rz_block_pair.chunks_exact(simd::f32x8_LENGTH).enumerate() {
-            for (block_j, &res_z) in rz_block.iter().enumerate() {
-                let res_i = block_j + i * simd::f32x8_LENGTH;
-                let res_j = block_i + j * simd::f32x8_LENGTH;
-                if res_i < n && res_j < n {
-                    r[res_i * n + res_j] = res_z;
-                }
-            }
-        }
-    }
 }
 
 
