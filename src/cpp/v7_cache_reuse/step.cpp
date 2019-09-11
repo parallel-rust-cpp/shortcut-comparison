@@ -12,22 +12,8 @@
 
 
 void step(float* r, const float* d_, int n) {
-    constexpr int row_chunk_width = 500;
+    constexpr int cols_per_stripe = 500;
     int na = (n + 8 - 1) / 8;
-
-    float8_t* vd = float8_alloc(na*n);
-    float8_t* vt = float8_alloc(na*n);
-
-    #pragma omp parallel for
-    for (int ja = 0; ja < na; ++ja) {
-        for (int i = 0; i < n; ++i) {
-            for (int jb = 0; jb < 8; ++jb) {
-                int j = ja * 8 + jb;
-                vd[n*ja + i][jb] = j < n ? d_[n*j + i] : infty;
-                vt[n*ja + i][jb] = j < n ? d_[n*i + j] : infty;
-            }
-        }
-    }
 
     // Build a Z-order curve memory access pattern for vd and vt
     std::vector<std::tuple<int,int,int>> rows(na*na);
@@ -44,14 +30,28 @@ void step(float* r, const float* d_, int n) {
     std::sort(rows.begin(), rows.end());
 #endif
 
+    // One stripe of rows and cols packed into float8_ts
+    float8_t* vd = float8_alloc(na*cols_per_stripe);
+    float8_t* vt = float8_alloc(na*cols_per_stripe);
     // Partial results
     float8_t* vr = float8_alloc(na*na*8);
 
-    const int num_row_chunks = (n + row_chunk_width - 1) / row_chunk_width;
+    for (int stripe = 0; stripe < n; stripe += cols_per_stripe) {
+        int stripe_end = std::min(n - stripe, cols_per_stripe);
 
-    for (int row_chunk = 0; row_chunk < num_row_chunks; ++row_chunk) {
-        int col_begin = row_chunk * row_chunk_width;
-        int col_end = std::min(n, (row_chunk + 1) * row_chunk_width);
+        // Load one row and column stripe from d
+        #pragma omp parallel for
+        for (int ja = 0; ja < na; ++ja) {
+            for (int id = 0; id < stripe_end; ++id) {
+                int t = cols_per_stripe * ja + id;
+                int i = stripe + id;
+                for (int jb = 0; jb < 8; ++jb) {
+                    int j = ja * 8 + jb;
+                    vd[t][jb] = j < n ? d_[n*j + i] : infty;
+                    vt[t][jb] = j < n ? d_[n*i + j] : infty;
+                }
+            }
+        }
 
         #pragma omp parallel for
         for (int i = 0; i < na * na; ++i) {
@@ -60,19 +60,19 @@ void step(float* r, const float* d_, int n) {
             std::tie(ija, ia, ja) = rows[i];
             (void)ija;
             // If we are not at column 0, then the partial results contain something useful, else the partial results are uninitialized
-            float8_t vv000 = row_chunk ? vr[8*i + 0] : f8infty;
-            float8_t vv001 = row_chunk ? vr[8*i + 1] : f8infty;
-            float8_t vv010 = row_chunk ? vr[8*i + 2] : f8infty;
-            float8_t vv011 = row_chunk ? vr[8*i + 3] : f8infty;
-            float8_t vv100 = row_chunk ? vr[8*i + 4] : f8infty;
-            float8_t vv101 = row_chunk ? vr[8*i + 5] : f8infty;
-            float8_t vv110 = row_chunk ? vr[8*i + 6] : f8infty;
-            float8_t vv111 = row_chunk ? vr[8*i + 7] : f8infty;
+            float8_t vv000 = stripe ? vr[8*i + 0] : f8infty;
+            float8_t vv001 = stripe ? vr[8*i + 1] : f8infty;
+            float8_t vv010 = stripe ? vr[8*i + 2] : f8infty;
+            float8_t vv011 = stripe ? vr[8*i + 3] : f8infty;
+            float8_t vv100 = stripe ? vr[8*i + 4] : f8infty;
+            float8_t vv101 = stripe ? vr[8*i + 5] : f8infty;
+            float8_t vv110 = stripe ? vr[8*i + 6] : f8infty;
+            float8_t vv111 = stripe ? vr[8*i + 7] : f8infty;
 
             // Compute partial results for this column chunk
-            for (int k = col_begin; k < col_end; ++k) {
-                float8_t a000 = vd[n*ia + k];
-                float8_t b000 = vt[n*ja + k];
+            for (int k = 0; k < stripe_end; ++k) {
+                float8_t a000 = vd[cols_per_stripe*ia + k];
+                float8_t b000 = vt[cols_per_stripe*ja + k];
                 float8_t a100 = swap4(a000);
                 float8_t a010 = swap2(a000);
                 float8_t a110 = swap2(a100);
@@ -121,7 +121,7 @@ void step(float* r, const float* d_, int n) {
         }
     }
 
-    std::free(vt);
     std::free(vd);
+    std::free(vt);
     std::free(vr);
 }
