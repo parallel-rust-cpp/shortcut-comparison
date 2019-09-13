@@ -6,9 +6,3 @@ The reference solution will be compared to a [Rust](https://github.com/rust-lang
 
 This repository contains the benchmark program and source code of all `step`-function implementations.
 A human-readable explanation of the Rust implementations can be found on [this page](https://parallel-rust-cpp.github.io/).
-
-## Example benchmark on Intel Xeon E3-1230 v5
-
-![Single thread benchmark results comparing the amount of single precision floating point instructions per second for 8 different implementations of the same program written in both Rust and C++.](reports/Xeon-E3-1230-v5/single_core/plot2.png "Single threaded performance")
-
-![Multi thread benchmark results comparing the amount of single precision floating point instructions per second for 8 different implementations of the same program written in both Rust and C++.](reports/Xeon-E3-1230-v5/multi_core/plot2.png "Multi threaded performance")

@@ -36,6 +36,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         .par_chunks_mut(vecs_per_col)
         .enumerate()
         .for_each(interleave_row);
+    // We don't need stable sort since there are no duplicate keys
     row_pairs.par_sort_unstable();
     // ANCHOR_END: interleave_apply
     }
@@ -125,7 +126,7 @@ fn _step(r: &mut [f32], d: &[f32], n: usize) {
         // ANCHOR_END: stripe_loop_step_partial_block
         #[cfg(not(feature = "no-multi-thread"))]
         // ANCHOR: stripe_loop_step_partial_block_apply
-        // Process current stripe
+        // Process current stripe in parallel, each thread filling one `tmp` block
         partial_results
             .par_chunks_mut(simd::f32x8_LENGTH)
             .zip(row_pairs.par_iter())
