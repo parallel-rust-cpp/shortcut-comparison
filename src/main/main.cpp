@@ -17,18 +17,23 @@ float next_float() {
     return floats(e);
 }
 
-void benchmark(unsigned n, unsigned iterations) noexcept {
-    std::vector<float> data(n*n);
+void benchmark(unsigned n, unsigned iterations, float max_seconds) noexcept {
+    std::vector<float> data(n*n, 0);
     std::generate(data.begin(), data.end(), next_float);
-    std::vector<float> result(n*n);
+    std::vector<float> result(n*n, 0);
+    float total_seconds = 0.0;
     while (iterations--) {
         const auto time_start = std::chrono::high_resolution_clock::now();
         step(result.data(), data.data(), n);
         const auto time_end = std::chrono::high_resolution_clock::now();
-        const std::chrono::duration<float> delta_seconds = time_end - time_start;
-        std::cout << std::setprecision(7) << delta_seconds.count() << std::endl;
+        const std::chrono::duration<float> time_delta = time_end - time_start;
+        std::cout << std::setprecision(7) << time_delta.count() << std::endl;
+        total_seconds += time_delta.count();
+        if (total_seconds > max_seconds) {
+            break;
+        }
         std::generate(data.begin(), data.end(), next_float);
-        std::fill(result.begin(), result.end(), 0.0);
+        std::fill(result.begin(), result.end(), 0);
     }
     // Do nothing with the results explicitly, so that the compiler will not optimize away something
     std::ofstream outf("/dev/null");
@@ -56,9 +61,6 @@ void test(const unsigned n) noexcept {
     }
 }
 
-void run_benchmark(const unsigned n, const unsigned iterations) {
-}
-
 void run_test(const unsigned n, const unsigned iterations) {
     std::cout << "for " << iterations << " iterations"
               << " with input containing "
@@ -82,7 +84,7 @@ bool is_valid(const std::string& command) {
 }
 
 void usage(const char* script_name) {
-    std::cerr << "usage: " << script_name << " <command> N [ITERATIONS]\n"
+    std::cerr << "usage: " << script_name << " <command> N [ITERATIONS [MAX_SECONDS]]\n"
               << "where command is one of:" << std::endl;
     for (const auto& c : VALID_COMMANDS) {
         std::cerr << "  " << c << std::endl;
@@ -90,7 +92,7 @@ void usage(const char* script_name) {
 }
 
 int main(int argc, const char** argv) {
-    if (argc < 3 || argc > 4) {
+    if (argc < 3 || argc > 5) {
         usage(argv[0]);
         return EXIT_FAILURE;
     }
@@ -100,13 +102,15 @@ int main(int argc, const char** argv) {
         return EXIT_FAILURE;
     }
     const unsigned n = std::atoi(argv[2]);
-    const unsigned iterations = argc == 4 ? std::atoi(argv[3]) : 1;
+    const unsigned iterations = argc > 3 ? std::atoi(argv[3]) : 1;
+    const float max_seconds = argc > 4 ? std::atof(argv[4]) : std::numeric_limits<float>::infinity();
 
     if (command == "benchmark") {
-        std::cout << "benchmarking " << argv[0] << ' ' << "for "
-                  << iterations << " iterations with input containing "
-                  << n*n << " elements" << std::endl;
-        benchmark(n, iterations);
+        std::cout << "benchmarking " << argv[0]
+                  << " with input containing " << n*n << " elements"
+                  << ", stopping after " << iterations << " iterations"
+                  << " or " << max_seconds << " seconds\n";
+        benchmark(n, iterations, max_seconds);
     } else if (command == "test") {
         std::cout << "testing " << argv[0] << ' ' << std::flush;
         run_test(n, iterations);
