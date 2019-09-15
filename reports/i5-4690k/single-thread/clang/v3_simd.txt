@@ -1,0 +1,22 @@
+benchmarking ./build/bin/v3_simd_cpp with input containing 36000000 elements, stopping after 100 iterations or 600 seconds
+48.87506
+48.97108
+48.99161
+48.9776
+48.99501
+49.00052
+48.96392
+48.9827
+48.98326
+48.98814
+48.98198
+49.00695
+48.99822
+665748.85,msec,task-clock:u,665748849871,100.00,1.000,CPUs utilized
+0,,context-switches:u,665748849871,100.00,0.000,K/sec
+0,,cpu-migrations:u,665748849871,100.00,0.000,K/sec
+1898642,,page-faults:u,665748849871,100.00,0.003,M/sec
+2850586300108,,cycles:u,665749939022,100.00,4.282,GHz
+2553634931042,,instructions:u,665749939022,100.00,0.90,insn per cycle
+367453681385,,branches:u,665749939022,100.00,551.940,M/sec
+468198076,,branch-misses:u,665749939022,100.00,0.13,of all branches

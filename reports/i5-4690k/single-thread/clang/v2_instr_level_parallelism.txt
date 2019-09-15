@@ -1,0 +1,12 @@
+benchmarking ./build/bin/v2_instr_level_parallelism_cpp with input containing 36000000 elements, stopping after 100 iterations or 600 seconds
+258.7073
+258.6537
+258.6703
+782761.51,msec,task-clock:u,782761511453,100.00,1.000,CPUs utilized
+0,,context-switches:u,782761511453,100.00,0.000,K/sec
+0,,cpu-migrations:u,782761511453,100.00,0.000,K/sec
+281443,,page-faults:u,782761511453,100.00,0.360,K/sec
+3356442264106,,cycles:u,782762709728,100.00,4.288,GHz
+9903246106106,,instructions:u,782762709728,100.00,2.95,insn per cycle
+165605355124,,branches:u,782762709728,100.00,211.566,M/sec
+108089169,,branch-misses:u,782762709728,100.00,0.07,of all branches

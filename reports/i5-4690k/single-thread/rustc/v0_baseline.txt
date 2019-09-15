@@ -1,0 +1,10 @@
+benchmarking ./build/bin/v0_baseline_rust with input containing 36000000 elements, stopping after 100 iterations or 600 seconds
+1800.989
+1801246.27,msec,task-clock:u,1801246268846,100.00,1.000,CPUs utilized
+0,,context-switches:u,1801246268846,100.00,0.000,K/sec
+0,,cpu-migrations:u,1801246268846,100.00,0.000,K/sec
+70520,,page-faults:u,1801246268846,100.00,0.039,K/sec
+7735993888822,,cycles:u,1801249715550,100.00,4.295,GHz
+3026505927136,,instructions:u,1801249715550,100.00,0.39,insn per cycle
+648328708715,,branches:u,1801249715550,100.00,359.933,M/sec
+36043065,,branch-misses:u,1801249715550,100.00,0.01,of all branches

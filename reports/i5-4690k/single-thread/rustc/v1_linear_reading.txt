@@ -1,0 +1,13 @@
+benchmarking ./build/bin/v1_linear_reading_rust with input containing 36000000 elements, stopping after 100 iterations or 600 seconds
+168.0096
+167.836
+167.9187
+167.8634
+672416.75,msec,task-clock:u,672416751346,100.00,1.000,CPUs utilized
+0,,context-switches:u,672416751346,100.00,0.000,K/sec
+0,,cpu-migrations:u,672416751346,100.00,0.000,K/sec
+211147,,page-faults:u,672416751346,100.00,0.314,K/sec
+2884730467250,,cycles:u,672418190978,100.00,4.290,GHz
+2927543104163,,instructions:u,672418190978,100.00,1.01,insn per cycle
+109876637291,,branches:u,672418190978,100.00,163.406,M/sec
+144082626,,branch-misses:u,672418190978,100.00,0.13,of all branches

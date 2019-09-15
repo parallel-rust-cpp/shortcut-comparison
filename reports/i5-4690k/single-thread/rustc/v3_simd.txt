@@ -1,0 +1,22 @@
+benchmarking ./build/bin/v3_simd_rust with input containing 36000000 elements, stopping after 100 iterations or 600 seconds
+48.37498
+48.15842
+48.17199
+48.14788
+48.42369
+48.4404
+48.45085
+48.44223
+48.43613
+48.45036
+48.43691
+48.11543
+48.11019
+630521.09,msec,task-clock:u,630521092558,100.00,1.000,CPUs utilized
+0,,context-switches:u,630521092558,100.00,0.000,K/sec
+0,,cpu-migrations:u,630521092558,100.00,0.000,K/sec
+984601,,page-faults:u,630521092558,100.00,0.002,M/sec
+2700146168775,,cycles:u,630522503566,100.00,4.282,GHz
+1454150863988,,instructions:u,630522503566,100.00,0.54,insn per cycle
+95550922975,,branches:u,630522503566,100.00,151.543,M/sec
+468333881,,branch-misses:u,630522503566,100.00,0.49,of all branches
