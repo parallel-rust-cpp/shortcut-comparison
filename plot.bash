@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-cpus=(i5-4690k Xeon-E3-1230-v5)
+cpus=(i5-8250U i5-4690k Xeon-E3-1230-v5)
 output_dir=plots
 
 for cpu in ${cpus[*]}; do
