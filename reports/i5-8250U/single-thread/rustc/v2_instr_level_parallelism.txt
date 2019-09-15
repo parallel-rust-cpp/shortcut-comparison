@@ -1,0 +1,22 @@
+benchmarking ./build/bin/v2_instr_level_parallelism_rust with input containing 36000000 elements, stopping after 100 iterations or 900 seconds
+72.79124
+72.80359
+72.75555
+72.76579
+72.758
+72.76572
+72.76398
+72.75889
+72.77058
+72.76354
+72.76237
+72.76588
+72.76522
+948768.67,msec,task-clock:u,948768665763,100.00,1.000,CPUs utilized
+0,,context-switches:u,948768665763,100.00,0.000,K/sec
+0,,cpu-migrations:u,948768665763,100.00,0.000,K/sec
+984601,,page-faults:u,948768665763,100.00,0.001,M/sec
+3210278024825,,cycles:u,948771246094,100.00,3.384,GHz
+6361214685122,,instructions:u,948771246094,100.00,1.98,insn per cycle
+182529632472,,branches:u,948771246094,100.00,192.386,M/sec
+468272029,,branch-misses:u,948771246094,100.00,0.26,of all branches

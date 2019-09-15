@@ -1,0 +1,12 @@
+benchmarking ./build/bin/v0_baseline_cpp with input containing 36000000 elements, stopping after 100 iterations or 900 seconds
+379.035
+377.734
+378.1944
+4549134.44,msec,task-clock:u,4549134435761,100.00,3.980,CPUs utilized
+0,,context-switches:u,4549134435761,100.00,0.000,K/sec
+0,,cpu-migrations:u,4549134435761,100.00,0.000,K/sec
+70579,,page-faults:u,4549134435761,100.00,0.016,K/sec
+13107718560514,,cycles:u,4549139367813,100.00,2.881,GHz
+3262484116085,,instructions:u,4549139367813,100.00,0.25,insn per cycle
+166111337005,,branches:u,4549139367813,100.00,36.515,M/sec
+108251210,,branch-misses:u,4549139367813,100.00,0.07,of all branches

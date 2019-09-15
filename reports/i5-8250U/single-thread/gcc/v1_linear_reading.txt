@@ -1,0 +1,13 @@
+benchmarking ./build/bin/v1_linear_reading_cpp with input containing 36000000 elements, stopping after 100 iterations or 900 seconds
+265.5179
+265.5305
+265.5485
+265.5587
+1063074.21,msec,task-clock:u,1063074212831,100.00,1.000,CPUs utilized
+0,,context-switches:u,1063074212831,100.00,0.000,K/sec
+0,,cpu-migrations:u,1063074212831,100.00,0.000,K/sec
+211124,,page-faults:u,1063074212831,100.00,0.199,K/sec
+3601370133876,,cycles:u,1063076355258,100.00,3.388,GHz
+6058101389908,,instructions:u,1063076355258,100.00,1.68,insn per cycle
+865588509500,,branches:u,1063076355258,100.00,814.231,M/sec
+144083957,,branch-misses:u,1063076355258,100.00,0.02,of all branches
