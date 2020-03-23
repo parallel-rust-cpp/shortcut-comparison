@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
-set -e
+set -ue
 
 BUILD_DIR=./build
 REPORT_DIR=./reports
 STEP_IMPLEMENTATIONS_LIST=./src/step_implementations.txt
-BENCHMARK_SIZE=6000
-MAX_ITERATIONS=100
-MAX_SECONDS=900
 THREADS=4
 TEST_ITERATIONS=1
+
+if [ $# -ge 0 -a "$1" == '--debug' ]; then
+    # Debug benchmark size
+    BENCHMARK_SIZE=1000
+    MAX_ITERATIONS=10
+    MAX_SECONDS=60
+else
+    # Original benchmark size
+    BENCHMARK_SIZE=6000
+    MAX_ITERATIONS=100
+    MAX_SECONDS=900
+fi
 
 function echo_red {
     echo -e "\e[31m$@\e[0m"
