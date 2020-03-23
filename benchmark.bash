@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ue
+set -e
 
 BUILD_DIR=./build
 REPORT_DIR=./reports
